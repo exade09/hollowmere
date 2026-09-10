@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clips": "node scripts/clip-manifest.mjs",
+    "prebuild": "node scripts/clip-manifest.mjs",
+    "predev": "node scripts/clip-manifest.mjs"
   },
   "dependencies": {
     "next": "^16.3.4",

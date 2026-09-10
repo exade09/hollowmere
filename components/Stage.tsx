@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { CLIP_HASHES } from '@/lib/clipHashes';
 import { RAVEN_CAW } from '@/lib/content';
 import { Aspect, CANVASES, Scene, Zone, aspectFor } from '@/lib/scenes';
 
@@ -60,13 +61,24 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
 
   const res = hd ? '1080p' : '720p';
   const dir = scene.dirs[aspect];
+
+  /**
+   * The clips carry a year-long immutable cache, so their addresses have to
+   * change when their contents do — otherwise a browser keeps whatever it
+   * fetched first, including a copy taken while the file was being written,
+   * and never asks again. lib/clipHashes.ts is generated from the bytes.
+   */
+  const stamped = useCallback((path: string) => {
+    const h = CLIP_HASHES[path];
+    return h ? `/clips/${path}?v=${h}` : `/clips/${path}`;
+  }, []);
   const src = useCallback(
-    (clip: string) => `/clips/${dir}/${res}/${clip}.mp4`,
-    [dir, res],
+    (clip: string) => stamped(`${dir}/${res}/${clip}.mp4`),
+    [dir, res, stamped],
   );
   const poster = useCallback(
-    (clip: string) => `/clips/${dir}/poster/${clip}.jpg`,
-    [dir],
+    (clip: string) => stamped(`${dir}/poster/${clip}.jpg`),
+    [dir, stamped],
   );
 
   // Dropping hover when the scene changes keeps a stale clip off screen.
