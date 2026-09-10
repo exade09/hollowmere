@@ -11,6 +11,9 @@ import { PanelId, SCENES, SceneId, Zone } from '@/lib/scenes';
 export default function Home() {
   const [scene, setScene] = useState<SceneId>('sanctum');
   const [panel, setPanel] = useState<PanelId | null>(null);
+  // The zone that opened the panel: its clip stays on screen underneath, so a
+  // widget never drops the room back to idle.
+  const [lockedZone, setLockedZone] = useState<Zone | null>(null);
   const [save, setSave] = useState<Save | null>(null);
   const [booted, setBooted] = useState(false);
 
@@ -34,20 +37,23 @@ export default function Home() {
   const onZone = useCallback((z: Zone) => {
     if (z.action.kind === 'travel') {
       setPanel(null);
+      setLockedZone(null);
       setScene(z.action.to);
     } else {
+      setLockedZone(z);
       setPanel(z.action.id);
     }
   }, []);
 
   const travel = useCallback((to: SceneId) => {
     setPanel(null);
+    setLockedZone(null);
     setScene(to);
   }, []);
 
   return (
     <main>
-      <Stage scene={SCENES[scene]} onZone={onZone} />
+      <Stage scene={SCENES[scene]} onZone={onZone} locked={panel ? lockedZone : null} />
 
       {save && (
         <Chrome
@@ -64,7 +70,7 @@ export default function Home() {
           id={panel}
           save={save}
           refresh={refresh}
-          onClose={() => { setPanel(null); refresh(); }}
+          onClose={() => { setPanel(null); setLockedZone(null); refresh(); }}
           onTravel={travel}
         />
       )}

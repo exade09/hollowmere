@@ -20,6 +20,7 @@ Built with Blender 5.2, EEVEE, 1920×1080, 24 fps.
 | `render_clips_uc.py` | renders the crypt's four clips |
 | `render_states.py` | renders the Sanctum's eight hover frames as stills |
 | `export_hotzones.py` | prints the SVG hotzone rectangles used by `lib/scenes.ts` |
+| `render_ui.py` | the widget furniture: one low-poly portrait per object plus the faceted stone slab behind every panel |
 
 ## Rebuilding
 
@@ -34,7 +35,19 @@ blender -b hollowmere_undercroft.blend --python render_clips_uc.py -- <outdir>
 # hotzone rectangles for the site
 blender -b hollowmere_sanctum.blend    --python export_hotzones.py -- sanctum
 blender -b hollowmere_undercroft.blend --python export_hotzones.py -- undercroft
+
+# widget icons and the panel slab, straight into the site
+blender -b hollowmere_sanctum.blend    --python render_ui.py -- sanctum    ../public/ui
+blender -b hollowmere_undercroft.blend --python render_ui.py -- undercroft ../public/ui
 ```
+
+`render_ui.py` isolates one group of objects at a time, drops the room's own
+lights for a shared three-point rig, and renders on transparency, so the icons
+keep the exact materials of the objects they portray and still read as one set.
+Two per-icon overrides exist because a single rig cannot serve everything: the
+parchment map is almost white and needs the exposure pulled down, and it hangs
+on the 288-degree panel, so it is viewed along its own normal instead of the
+shared three-quarter direction.
 
 Each render script takes an optional clip name as the second argument and the
 literal `test` as the third, which renders three sample frames instead of the

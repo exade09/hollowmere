@@ -66,7 +66,21 @@ lib/
 public/clips/
   sanctum/{1080p,720p,poster}/     nine clips
   undercroft/{1080p,720p,poster}/  four clips
+public/ui/
+  icons/              one low-poly portrait per interactive object
+  panel_stone.png     the faceted slab behind every panel
+blender/              the scenes and the scripts that generate all of the above
 ```
+
+## The widgets
+
+The panels are cut from the same material as the rooms rather than styled to
+look like them. Their plates are chamfered polygons — `clip-path` octagons,
+edged by a second layer underneath because a border would be clipped away at
+the corners. Their ground is a faceted stone slab rendered in Blender. Every
+panel carries a portrait of its own object, rendered from the actual scene
+geometry under a shared three-point rig, so the chest in the header is the chest
+in the room.
 
 ## How the rooms work
 
@@ -81,9 +95,15 @@ Those rectangles are **not hand-placed**. They are exported from the Blender
 scenes through their render cameras by `scene/export_hotzones.py`, so a hotzone
 sits exactly on top of the object in the video.
 
-On a viewport narrower than about 4:3, `object-fit` switches from `cover` to
-`contain` and the SVG's `preserveAspectRatio` follows, so a phone in portrait
-sees the whole room instead of losing the door and the raven off the sides.
+The frame is always letterboxed, never cropped. A 16:9 room shown with
+`object-fit: cover` on a 16:10 laptop loses its left and right edges — which is
+both worse to look at and unusable, because that is where the door and the
+raven live. `contain` fits the whole room into the ground colour instead, and a
+vignette sinks the bars into the frame so they do not read as a bug.
+
+Opening a widget does not drop the room back to idle: the zone that opened the
+panel stays locked on screen underneath it, so the character is still mid-gesture
+while you read.
 
 Clips are served at 1080p above 1280px wide and 720p below. Total media weight
 is under 12 MB for thirteen clips.

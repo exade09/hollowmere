@@ -1,5 +1,11 @@
 /* HOLLOWMERE — palette taken from the world bible and matched to the renders:
-   cold stone, warm fire, spectral teal on everything interactive. */
+   cold stone, warm fire, spectral teal on everything interactive.
+
+   The widgets are cut from the same material as the rooms. Their plates are
+   chamfered polygons rather than rounded rectangles, their ground is a faceted
+   stone slab rendered in Blender under the same three-point rig as the icons,
+   and every object gets its own low-poly portrait. Nothing here imitates the
+   3D style in CSS: it is the same geometry, rendered once. */
 :root {
   --ground: #0b0a10;
   --stone: #4a4650;
@@ -14,6 +20,13 @@
   --spectre: #4fd6c4;
   --blood: #6b2b3a;
   --measure: 66ch;
+
+  /* chamfers: the low-poly silhouette the whole interface is cut to */
+  --cut-lg: polygon(24px 0, calc(100% - 24px) 0, 100% 24px, 100% calc(100% - 24px),
+    calc(100% - 24px) 100%, 24px 100%, 0 calc(100% - 24px), 0 24px);
+  --cut-md: polygon(13px 0, calc(100% - 13px) 0, 100% 13px, 100% calc(100% - 13px),
+    calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 13px), 0 13px);
+  --cut-sm: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
 }
 
 * { box-sizing: border-box; }
@@ -42,23 +55,32 @@ a:hover { border-bottom-color: var(--spectre); }
   background: var(--ground);
 }
 
+/* The room is always shown whole. object-fit: contain letterboxes into the
+   ground colour instead of cropping the sides off a non-16:9 window. */
 .stage-frame {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transition: opacity .32s ease;
 }
 
 .stage-frame.hidden { opacity: 0; }
+
+/* Keeps the letterbox from reading as a bug: the bars sink into the frame. */
+.stage-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(6, 5, 9, .55) 100%);
+}
 
 .hotzones {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
 }
 
 .hotzone {
@@ -88,9 +110,9 @@ a:hover { border-bottom-color: var(--spectre); }
   letter-spacing: .22em;
   text-transform: uppercase;
   color: var(--spectre);
-  background: rgba(11, 10, 16, .72);
-  padding: 7px 18px;
-  border: 1px solid var(--line);
+  background: rgba(11, 10, 16, .78);
+  padding: 8px 20px;
+  clip-path: var(--cut-md);
   pointer-events: none;
   opacity: 0;
   transition: opacity .18s ease;
@@ -107,7 +129,7 @@ a:hover { border-bottom-color: var(--spectre); }
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background: linear-gradient(to top, rgba(11, 10, 16, .92), rgba(11, 10, 16, 0));
+  background: linear-gradient(to top, rgba(11, 10, 16, .94), rgba(11, 10, 16, 0));
   z-index: 40;
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -119,19 +141,21 @@ a:hover { border-bottom-color: var(--spectre); }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 13px;
-  border: 1px solid var(--line);
-  background: rgba(20, 18, 27, .82);
+  padding: 8px 14px;
+  clip-path: var(--cut-sm);
+  background: linear-gradient(150deg, #241f30, #15121d);
+  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .07);
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 11.5px;
   letter-spacing: .11em;
   text-transform: uppercase;
   color: var(--muted);
-  transition: border-color .16s, color .16s;
+  white-space: nowrap;
+  transition: color .16s, background .16s;
 }
-.chrome-btn:hover { border-color: var(--spectre); color: var(--bone); }
+.chrome-btn:hover { color: var(--bone); background: linear-gradient(150deg, #2c2639, #1b1726); }
 .chrome-btn.wide { text-transform: none; letter-spacing: .04em; }
-.chrome-btn .dot { width: 6px; height: 6px; background: var(--spectre); transform: rotate(45deg); }
+.chrome-btn .dot { width: 7px; height: 7px; background: var(--spectre); transform: rotate(45deg); }
 .chrome-spacer { flex: 1 1 auto; }
 .chrome-place {
   font-family: var(--font-display), Georgia, serif;
@@ -139,14 +163,15 @@ a:hover { border-bottom-color: var(--spectre); }
   letter-spacing: .26em;
   color: var(--muted);
   padding-left: 4px;
+  white-space: nowrap;
 }
 
 /* ---------------------------------------------------------------- panels */
 .scrim {
   position: fixed;
   inset: 0;
-  background: rgba(6, 5, 9, .62);
-  backdrop-filter: blur(3px);
+  background: radial-gradient(90% 70% at 50% 50%, rgba(6, 5, 9, .48), rgba(6, 5, 9, .78));
+  backdrop-filter: blur(1.5px);
   z-index: 50;
   display: grid;
   place-items: center;
@@ -156,32 +181,59 @@ a:hover { border-bottom-color: var(--spectre); }
 
 @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
 
+/* The plate is two chamfered layers: the outer one is the chiselled edge, the
+   inner one carries the stone. A border cannot be used, because clip-path cuts
+   it away at every corner. */
 .panel {
-  width: min(760px, 100%);
-  max-height: min(84vh, 780px);
+  width: min(780px, 100%);
+  clip-path: var(--cut-lg);
+  padding: 2px;
+  background: linear-gradient(155deg, #4b4457 0%, #2a2534 38%, #191622 100%);
+  animation: rise .22s ease;
+}
+
+@keyframes rise {
+  from { transform: translateY(10px); opacity: 0 }
+  to { transform: none; opacity: 1 }
+}
+
+.panel-inner {
+  clip-path: var(--cut-lg);
+  max-height: min(84vh, 800px);
   overflow: auto;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, .6);
+  background:
+    linear-gradient(180deg, rgba(11, 10, 16, .90) 0%, rgba(11, 10, 16, .95) 100%),
+    url("/ui/panel_stone.png") center / cover no-repeat;
 }
 
 .panel-head {
   display: flex;
-  align-items: baseline;
-  gap: 14px;
-  padding: 20px 24px 14px;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px 16px;
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
-  background: var(--panel);
+  background: linear-gradient(180deg, rgba(17, 15, 23, .97), rgba(17, 15, 23, .88));
+  backdrop-filter: blur(2px);
+}
+
+/* the object's own portrait, rendered in Blender beside the room it lives in */
+.panel-icon {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .55));
 }
 
 .panel-head h2 {
   margin: 0;
   font-family: var(--font-display), Georgia, serif;
   font-weight: 600;
-  font-size: 25px;
+  font-size: 26px;
   letter-spacing: .03em;
+  line-height: 1.1;
 }
 
 .panel-head .kicker {
@@ -190,13 +242,21 @@ a:hover { border-bottom-color: var(--spectre); }
   letter-spacing: .2em;
   text-transform: uppercase;
   color: var(--spectre);
+  margin-bottom: 2px;
 }
 
-.panel-close { margin-left: auto; color: var(--muted); font-size: 20px; line-height: 1; }
+.panel-close {
+  margin-left: auto;
+  align-self: flex-start;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 6px;
+}
 .panel-close:hover { color: var(--bone); }
 
-.panel-body { padding: 20px 24px 26px; }
-.panel-body > * + * { margin-top: 14px; }
+.panel-body { padding: 22px 24px 26px; }
+.panel-body > * + * { margin-top: 15px; }
 .panel-body p { margin: 0; color: var(--muted); line-height: 1.62; max-width: var(--measure); }
 .panel-body p.lead { color: var(--bone); }
 
@@ -207,9 +267,9 @@ a:hover { border-bottom-color: var(--spectre); }
 .rows { display: grid; gap: 0; }
 .row {
   display: grid;
-  grid-template-columns: 150px 1fr;
+  grid-template-columns: 158px 1fr;
   gap: 14px;
-  padding: 9px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--line-soft);
   font-size: 15px;
 }
@@ -224,10 +284,17 @@ a:hover { border-bottom-color: var(--spectre); }
 .row dd { margin: 0; }
 
 /* list of scraps */
-.notes { display: grid; gap: 12px; }
-.note {
-  border-left: 2px solid var(--ember);
-  padding: 4px 0 4px 14px;
+.notes { display: grid; gap: 13px; }
+.note { position: relative; padding: 4px 0 4px 18px; }
+.note::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  background: var(--ember);
+  transform: rotate(45deg);
 }
 .note time {
   display: block;
@@ -237,25 +304,32 @@ a:hover { border-bottom-color: var(--spectre); }
   color: var(--muted);
   margin-bottom: 4px;
 }
-.note.fresh { border-left-color: var(--spectre); }
+.note.fresh::before { background: var(--spectre); }
 
-/* checklist */
-.rites { display: grid; gap: 8px; }
-.rite { display: flex; gap: 11px; align-items: baseline; font-size: 15px; }
-.rite .box { font-family: var(--font-mono), monospace; color: var(--muted); }
-.rite.done .box { color: var(--spectre); }
+/* checklist: faceted gems instead of glyphs */
+.rites { display: grid; gap: 9px; }
+.rite { display: flex; gap: 13px; align-items: center; font-size: 15px; }
+.rite .box {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
+  transform: rotate(45deg);
+  border: 1px solid var(--stone);
+}
+.rite.done .box { background: var(--spectre); border-color: var(--spectre); }
 .rite.done span { color: var(--muted); text-decoration: line-through; }
 
 /* card grid */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); gap: 12px; }
 .card {
-  border: 1px solid var(--line);
-  background: var(--panel-2);
-  padding: 13px 14px;
+  clip-path: var(--cut-md);
+  background: linear-gradient(155deg, #262133 0%, #191622 62%, #16131e 100%);
+  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .06);
+  padding: 14px 15px;
   display: flex;
   flex-direction: column;
   gap: 5px;
-  min-height: 92px;
+  min-height: 96px;
 }
 .card b { font-family: var(--font-display), Georgia, serif; font-weight: 600; font-size: 16px; }
 .card small { color: var(--muted); font-size: 13px; line-height: 1.45; }
@@ -267,53 +341,58 @@ a:hover { border-bottom-color: var(--spectre); }
   text-transform: uppercase;
   color: var(--muted);
 }
-.card.open { border-color: rgba(79, 214, 196, .45); }
+.card.open { background: linear-gradient(155deg, #26333a 0%, #191f26 62%, #15181f 100%); }
 .card.open .tag { color: var(--spectre); }
-.card.lost { opacity: .58; }
-.card.travel { cursor: pointer; }
-.card.travel:hover { border-color: var(--spectre); }
+.card.lost { opacity: .55; }
+.card.travel { cursor: pointer; transition: transform .16s ease; }
+.card.travel:hover { transform: translateY(-2px); }
+.card-icon { width: 42px; height: 42px; object-fit: contain; margin-bottom: 2px; }
 
 /* buttons inside panels */
-.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .btn {
-  padding: 9px 16px;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
+  padding: 10px 17px;
+  clip-path: var(--cut-sm);
+  background: linear-gradient(150deg, #2b2537, #16131f);
+  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .08);
   font-family: var(--font-mono), monospace;
   font-size: 11.5px;
   letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--bone);
-  transition: border-color .16s, background .16s;
+  transition: background .16s, color .16s;
 }
-.btn:hover { border-color: var(--spectre); }
-.btn.primary { border-color: rgba(79, 214, 196, .5); color: var(--spectre); }
-.btn.warm { border-color: rgba(217, 122, 61, .5); color: var(--ember); }
-.btn:disabled { opacity: .45; cursor: not-allowed; border-color: var(--line); }
+.btn:hover { background: linear-gradient(150deg, #362e46, #1d1927); }
+.btn.primary { color: var(--spectre); background: linear-gradient(150deg, #1f3a38, #14201f); }
+.btn.primary:hover { background: linear-gradient(150deg, #275049, #172b27); }
+.btn.warm { color: var(--ember); background: linear-gradient(150deg, #3a2a1e, #1e1610); }
+.btn.warm:hover { background: linear-gradient(150deg, #4d3625, #291c13); }
+.btn:disabled { opacity: .42; cursor: not-allowed; }
 
 /* contract address */
 .ca {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
-  padding: 11px 14px;
+  gap: 12px;
+  clip-path: var(--cut-md);
+  background: linear-gradient(150deg, #241f30, #14121c);
+  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .06);
+  padding: 13px 15px;
   font-family: var(--font-mono), monospace;
   font-size: 13px;
   word-break: break-all;
+  flex-wrap: wrap;
 }
 
 /* the three-ring lock */
-.lock { display: grid; gap: 16px; justify-items: center; }
-.rings { display: grid; gap: 10px; width: 100%; max-width: 420px; }
+.lock { display: grid; gap: 14px; justify-items: center; }
+.rings { display: grid; gap: 10px; width: 100%; max-width: 440px; }
 .ring-row { display: flex; align-items: center; gap: 10px; }
 .ring-track {
   flex: 1;
   display: flex;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
-  overflow: hidden;
+  clip-path: var(--cut-sm);
+  background: linear-gradient(150deg, #221d2d, #141119);
 }
 .ring-cell {
   flex: 1;
@@ -321,13 +400,11 @@ a:hover { border-bottom-color: var(--spectre); }
   display: grid;
   place-items: center;
   font-family: var(--font-mono), monospace;
-  font-size: 15px;
-  color: var(--muted);
-  border-right: 1px solid var(--line-soft);
+  font-size: 16px;
+  color: #5f5870;
 }
-.ring-cell:last-child { border-right: none; }
-.ring-cell.mark { color: var(--bone); background: rgba(79, 214, 196, .07); }
-.ring-row.locked .ring-cell.mark { color: var(--spectre); background: rgba(79, 214, 196, .16); }
+.ring-cell.mark { color: var(--bone); background: rgba(79, 214, 196, .08); }
+.ring-row.locked .ring-cell.mark { color: var(--spectre); background: rgba(79, 214, 196, .18); }
 .lock-marker {
   font-family: var(--font-mono), monospace;
   font-size: 11px;
@@ -337,7 +414,12 @@ a:hover { border-bottom-color: var(--spectre); }
 
 /* the candle */
 .candle { display: flex; align-items: center; gap: 14px; }
-.candle-bar { flex: 1; height: 6px; background: var(--stone-dim); border: 1px solid var(--line); }
+.candle-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--stone-dim);
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
 .candle-fill { height: 100%; background: linear-gradient(90deg, var(--blood), var(--ember)); }
 
 /* tally marks */
@@ -353,7 +435,11 @@ a:hover { border-bottom-color: var(--spectre); }
 .tally i:nth-child(5n) { transform: rotate(-58deg) translateX(-9px); }
 
 /* share card */
-.share-preview { border: 1px solid var(--line); background: var(--panel-2); padding: 8px; }
+.share-preview {
+  clip-path: var(--cut-md);
+  background: linear-gradient(150deg, #262133, #15121d);
+  padding: 9px;
+}
 .share-preview canvas { display: block; width: 100%; height: auto; }
 
 /* world title on the first screen */
@@ -367,6 +453,7 @@ a:hover { border-bottom-color: var(--spectre); }
   transition: opacity .7s ease;
   text-align: center;
   padding: 24px;
+  cursor: pointer;
 }
 .boot.gone { opacity: 0; pointer-events: none; }
 .boot h1 {
@@ -398,5 +485,6 @@ a:hover { border-bottom-color: var(--spectre); }
 @media (max-width: 640px) {
   .row { grid-template-columns: 1fr; gap: 2px; }
   .panel-head h2 { font-size: 21px; }
+  .panel-icon { width: 44px; height: 44px; flex-basis: 44px; }
   .zone-label { bottom: 108px; font-size: 13px; }
 }

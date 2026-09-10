@@ -231,6 +231,14 @@ function Hold({ onTravel }: { onTravel: (to: SceneId) => void }) {
             tabIndex={h.id ? 0 : undefined}
             onKeyDown={(e) => { if (h.id && (e.key === 'Enter' || e.key === ' ')) onTravel(h.id); }}
           >
+            {h.id && (
+              <img
+                className="card-icon"
+                src={`/ui/icons/${h.id === 'sanctum' ? 'astro' : 'altar'}.png`}
+                alt=""
+                aria-hidden="true"
+              />
+            )}
             <b>{h.name}</b>
             <small>{h.note}</small>
             <span className="tag">{h.id ? 'go in' : 'shut'}</span>
@@ -490,24 +498,24 @@ function Gate({ save, refresh }: { save: Save; refresh: () => void }) {
 }
 
 /* --------------------------------------------------------------- the host */
-const META: Record<PanelId, { kicker: string; title: string }> = {
-  sigil: { kicker: 'the sigil', title: 'MARK OF THE HOLLOW' },
-  raven: { kicker: 'the raven', title: 'WORD FROM OUTSIDE' },
-  chest: { kicker: 'the chest', title: 'THE LOCK' },
-  books: { kicker: 'the shelf', title: 'THE ARCHIVE' },
-  map: { kicker: 'the old map', title: 'THE HOLD' },
-  astro: { kicker: 'the spheres', title: 'THE SPHERES' },
-  mirror: { kicker: 'the mirror', title: 'THE OTHER SIDE' },
-  cage: { kicker: 'the cage', title: 'NIGHTS KEPT' },
-  altar: { kicker: 'the altar', title: 'THE LONG VIGIL' },
-  gate: { kicker: 'the gate', title: 'THE SEALED GATE' },
+const META: Record<PanelId, { kicker: string; title: string; icon: string }> = {
+  sigil: { kicker: 'the sigil', title: 'MARK OF THE HOLLOW', icon: 'sigil' },
+  raven: { kicker: 'the raven', title: 'WORD FROM OUTSIDE', icon: 'raven' },
+  chest: { kicker: 'the chest', title: 'THE LOCK', icon: 'chest' },
+  books: { kicker: 'the shelf', title: 'THE ARCHIVE', icon: 'books' },
+  map: { kicker: 'the old map', title: 'THE HOLD', icon: 'map' },
+  astro: { kicker: 'the spheres', title: 'THE SPHERES', icon: 'astro' },
+  mirror: { kicker: 'the mirror', title: 'THE OTHER SIDE', icon: 'mirror' },
+  cage: { kicker: 'the cage', title: 'NIGHTS KEPT', icon: 'cage' },
+  altar: { kicker: 'the altar', title: 'THE LONG VIGIL', icon: 'altar' },
+  gate: { kicker: 'the gate', title: 'THE SEALED GATE', icon: 'gate' },
 };
 
 export default function PanelHost({ id, onClose, onTravel, save, refresh }: HostProps) {
   useEffect(() => { markBlock(id); }, [id]);
   const meta = META[id];
   return (
-    <Panel kicker={meta.kicker} title={meta.title} onClose={onClose}>
+    <Panel kicker={meta.kicker} title={meta.title} icon={meta.icon} onClose={onClose}>
       {id === 'sigil' && <Sigil save={save} refresh={refresh} />}
       {id === 'raven' && <Raven save={save} />}
       {id === 'chest' && <Chest save={save} refresh={refresh} />}

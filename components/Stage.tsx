@@ -6,31 +6,32 @@ import { CANVAS, Scene, Zone } from '@/lib/scenes';
 type Props = {
   scene: Scene;
   onZone: (zone: Zone) => void;
+  /**
+   * Zone whose clip must stay on screen regardless of the cursor — set while a
+   * panel is open, so opening a widget does not snap the room back to idle.
+   */
+  locked?: Zone | null;
 };
 
 /**
  * A scene is a looping idle video, a hover clip layered on top, and a
- * transparent SVG of hotzone rectangles. Same trick as the reference: the
- * canvas is fixed at 1920x1080 and object-fit stretches it over the viewport,
- * so a click always lands on the right pixel with nothing to recompute on
- * resize.
+ * transparent SVG of hotzone rectangles.
+ *
+ * The frame is authored once at 1920x1080 and always letterboxed, never
+ * cropped: a room that gets its sides cut off on a 16:10 laptop is both worse
+ * to look at and unusable, because the door and the raven end up outside the
+ * window. The SVG uses the matching preserveAspectRatio, so a hotzone stays
+ * exactly on its object at any window size.
  */
-export default function Stage({ scene, onZone }: Props) {
+export default function Stage({ scene, onZone, locked }: Props) {
   const [hd, setHd] = useState(true);
-  const [fit, setFit] = useState<'cover' | 'contain'>('cover');
   const [active, setActive] = useState<Zone | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [clipReady, setClipReady] = useState(false);
   const idleRef = useRef<HTMLVideoElement | null>(null);
-  const clipRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    const pick = () => {
-      setHd(window.innerWidth > 1280 && window.devicePixelRatio >= 1);
-      // The frame is authored in 16:9. On a narrower viewport, cover would
-      // crop away half the scene along with its hotzones, so fit it instead.
-      setFit(window.innerWidth / window.innerHeight >= 1.34 ? 'cover' : 'contain');
-    };
+    const pick = () => setHd(window.innerWidth > 1280);
     pick();
     window.addEventListener('resize', pick);
     return () => window.removeEventListener('resize', pick);
@@ -54,6 +55,7 @@ export default function Stage({ scene, onZone }: Props) {
   }, [scene.id]);
 
   const enter = (z: Zone) => {
+    if (locked) return;
     setHovered(z.label);
     if (z.clip === scene.idle) return; // zone with no clip of its own
     setClipReady(false);
@@ -61,13 +63,13 @@ export default function Stage({ scene, onZone }: Props) {
   };
 
   const leave = () => {
+    if (locked) return;
     setHovered(null);
     setActive(null);
     setClipReady(false);
   };
 
-  const viewBox = `0 0 ${CANVAS.w} ${CANVAS.h}`;
-  const par = fit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet';
+  const shown = locked && locked.clip !== scene.idle ? locked : locked ? null : active;
 
   return (
     <div className="stage">
@@ -75,7 +77,6 @@ export default function Stage({ scene, onZone }: Props) {
         key={`${scene.id}-idle-${res}`}
         ref={idleRef}
         className="stage-frame"
-        style={{ objectFit: fit }}
         src={src(scene.idle)}
         poster={poster(scene.idle)}
         autoPlay
@@ -85,22 +86,19 @@ export default function Stage({ scene, onZone }: Props) {
         preload="auto"
       />
 
-      {active && (
+      {shown && (
         <>
           {/* the poster shows instantly while the clip buffers */}
           <img
             className={`stage-frame ${clipReady ? 'hidden' : ''}`}
-            style={{ objectFit: fit }}
-            src={poster(active.clip)}
+            src={poster(shown.clip)}
             alt=""
             aria-hidden="true"
           />
           <video
-            key={`${scene.id}-${active.clip}-${res}`}
-            ref={clipRef}
+            key={`${scene.id}-${shown.clip}-${res}`}
             className={`stage-frame ${clipReady ? '' : 'hidden'}`}
-            style={{ objectFit: fit }}
-            src={src(active.clip)}
+            src={src(shown.clip)}
             autoPlay
             loop
             muted
@@ -111,12 +109,9 @@ export default function Stage({ scene, onZone }: Props) {
         </>
       )}
 
-      <svg
-        className="hotzones"
-        viewBox={viewBox}
-        preserveAspectRatio={par}
-        style={{ objectFit: fit }}
-      >
+      <div className="stage-vignette" aria-hidden="true" />
+
+      <svg className="hotzones" viewBox={`0 0 ${CANVAS.w} ${CANVAS.h}`} preserveAspectRatio="xMidYMid meet">
         {scene.zones.map((z) => (
           <rect
             key={z.label}
