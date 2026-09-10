@@ -251,31 +251,68 @@ function Hold({ onTravel }: { onTravel: (to: SceneId) => void }) {
 
 /* ------------------------------------------------- the spheres: room sound */
 function Spheres({ save, refresh }: { save: Save; refresh: () => void }) {
+  const pick = (id: string) => {
+    patch({ audio: { ...save.audio, track: id, muted: id === 'silence' ? true : false } });
+    refresh();
+  };
+  const setVol = (v: number) => {
+    patch({ audio: { ...save.audio, vol: v } });
+    refresh();
+  };
+  const playing = !save.audio.muted;
+
   return (
     <>
       <p className="lead">
-        The rings catch a sound that is not in the room. For now they are silent: nothing
-        has been recorded yet.
+        The rings catch a sound that is not in the room. Pick one and it keeps
+        going while you walk around; it is remembered for next time.
       </p>
-      <div className="grid">
-        {SPHERES.map((s) => (
-          <div className={`card ${save.audio.track === s.id ? 'open' : ''}`} key={s.id}>
-            <b>{s.name}</b>
-            <small>{s.note}</small>
-            <span className="tag">
-              <button
-                className="btn"
-                onClick={() => { patch({ audio: { ...save.audio, track: s.id } }); refresh(); }}
-              >
-                {save.audio.track === s.id ? 'chosen' : 'choose'}
-              </button>
-            </span>
-          </div>
-        ))}
+      <div className="tracks">
+        {SPHERES.map((s) => {
+          const on = save.audio.track === s.id;
+          return (
+            <button
+              className={`track ${on ? 'on' : ''}`}
+              key={s.id}
+              onClick={() => pick(s.id)}
+              aria-pressed={on}
+            >
+              <span className="track-mark" aria-hidden="true" />
+              <span className="track-name">
+                <b>{s.title}</b>
+                {s.artist && <small>{s.artist}</small>}
+              </span>
+              <span className="track-note">{s.note}</span>
+              <span className="track-state">
+                {on ? (s.file ? (playing ? 'playing' : 'paused') : 'kept') : ''}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="actions">
+        <button
+          className="btn"
+          onClick={() => { patch({ audio: { ...save.audio, muted: !save.audio.muted } }); refresh(); }}
+        >
+          {playing ? 'stop' : 'play'}
+        </button>
+        <label className="vol">
+          <span className="mono dim">volume</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(save.audio.vol * 100)}
+            onChange={(e) => setVol(Number(e.target.value) / 100)}
+            aria-label="volume"
+          />
+          <span className="mono dim">{Math.round(save.audio.vol * 100)}</span>
+        </label>
       </div>
       <p className="dim">
-        The choice is remembered. The moment the files exist the spheres start sounding on
-        their own, with no change to this page.
+        Nothing plays until you have stepped into the room — browsers hold sound
+        back until then, and I am not going to argue with them.
       </p>
     </>
   );
@@ -345,6 +382,16 @@ function Mirror({ save }: { save: Save }) {
       64,
       H - 64,
     );
+
+    // Wick goes on the right of the card. The image is async, so the card
+    // draws complete without him first and he lands a moment later.
+    const fig = new Image();
+    fig.src = '/ui/wick.png';
+    fig.onload = () => {
+      const h = 470;
+      const w = (fig.naturalWidth / fig.naturalHeight) * h;
+      g.drawImage(fig, W - w - 78, H - h - 74, w, h);
+    };
   }, [save]);
 
   const download = () => {
@@ -364,17 +411,20 @@ function Mirror({ save }: { save: Save }) {
       <p className="lead">
         There is no room in the mirror. There is only how long you have been standing here.
       </p>
+      <div className="mirror-figure">
+        <img src="/ui/wick.png" alt="Wick" className="wick" />
+        <dl className="rows">
+          {WICK.map(([k, v]) => (
+            <div className="row" key={k}><dt>{k}</dt><dd>{v}</dd></div>
+          ))}
+        </dl>
+      </div>
       <div className="share-preview">
         <canvas ref={canvas} aria-label="progress card" />
       </div>
       <div className="actions">
         <button className="btn primary" onClick={download}>save as image</button>
       </div>
-      <dl className="rows">
-        {WICK.map(([k, v]) => (
-          <div className="row" key={k}><dt>{k}</dt><dd>{v}</dd></div>
-        ))}
-      </dl>
     </>
   );
 }

@@ -151,6 +151,29 @@ for name, prefixes in GROUPS[WHICH].items():
     bpy.ops.render.render(write_still=True)
     print("UI ICON", name, round(span, 2))
 
+# ---- Wick's portrait for the mirror --------------------------------------
+if WHICH == "sanctum":
+    objs = isolate(["Mascot"])
+    if objs:
+        center, dim = frame(objs)
+        span = max(dim.x, dim.z)
+        cam_data.ortho_scale = span * 1.30
+        # Almost head-on, only slightly to the side: this is a portrait, not a
+        # prop, so the face has to read.
+        view = Vector((0.34, 0.92, 0.16)).normalized()
+        cam.location = center + view * (span * 4.0 + 4.0)
+        cam.rotation_euler = (-view).to_track_quat("-Z", "Y").to_euler()
+        build_rig(center, span)
+        sc.view_settings.exposure = -0.35
+        sc.render.resolution_x = 560
+        sc.render.resolution_y = 720
+        sc.render.filepath = OUT + "/wick.png"
+        bpy.ops.render.render(write_still=True)
+        print("UI PORTRAIT wick", round(span, 2))
+    sc.render.resolution_x = 320
+    sc.render.resolution_y = 320
+    sc.view_settings.exposure = 0.0
+
 # ---- the stone slab behind every panel -----------------------------------
 if WHICH == "sanctum":
     random.seed(4)

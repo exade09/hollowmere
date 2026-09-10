@@ -128,9 +128,55 @@ export const HOARD_NOTE = {
   sign: '— TODO: signature',
 };
 
-export const SPHERES: { id: string; name: string; note: string }[] = [
-  { id: 'wind', name: 'wind in the stone', note: 'not recorded yet' },
-  { id: 'deep', name: 'the deep hour', note: 'not recorded yet' },
-  { id: 'embers', name: 'embers', note: 'not recorded yet' },
-  { id: 'silence', name: 'silence', note: 'always available' },
+export type Sphere = {
+  id: string;
+  title: string;
+  /** Credit line. Empty for silence. */
+  artist: string;
+  /** Path under /public/audio, or null for silence. */
+  file: string | null;
+  /** What the room sounds like when this one is playing. */
+  note: string;
+};
+
+/**
+ * What the rings are tuned to. These are real recordings, so the panel credits
+ * them by name rather than hiding them behind world flavour.
+ */
+export const SPHERES: Sphere[] = [
+  {
+    id: 'harvest-dawn',
+    title: 'Harvest Dawn',
+    artist: 'Jeremy Soule · The Elder Scrolls IV',
+    file: '/audio/harvest-dawn.mp3',
+    note: 'the hour before anything is asked of you',
+  },
+  {
+    id: 'moog-city-2',
+    title: 'Moog City 2',
+    artist: 'C418 · slowed',
+    file: '/audio/moog-city-2.mp3',
+    note: 'someone else keeping house, a long way off',
+  },
+  {
+    id: 'space-ii',
+    title: 'Space II',
+    artist: 'Dorian Concept · slowed + reverb',
+    file: '/audio/space-ii.mp3',
+    note: 'the hole in the ceiling, and whatever is past it',
+  },
+  {
+    id: 'hide',
+    title: 'Hide',
+    artist: 'Dorian Concept · slowed',
+    file: '/audio/hide.mp3',
+    note: 'for the nights I do not answer the door',
+  },
+  {
+    id: 'silence',
+    title: 'Silence',
+    artist: '',
+    file: null,
+    note: 'always available, and cheaper to keep',
+  },
 ];

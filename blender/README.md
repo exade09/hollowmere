@@ -32,9 +32,13 @@ blender -b --factory-startup --python build_undercroft.py
 blender -b hollowmere_sanctum.blend   --python render_clips.py    -- <outdir>
 blender -b hollowmere_undercroft.blend --python render_clips_uc.py -- <outdir>
 
+# the same clips at 21:9 — add "wide" anywhere in the arguments
+blender -b hollowmere_sanctum.blend   --python render_clips.py    -- <outdir> "" wide
+
 # hotzone rectangles for the site
 blender -b hollowmere_sanctum.blend    --python export_hotzones.py -- sanctum
 blender -b hollowmere_undercroft.blend --python export_hotzones.py -- undercroft
+blender -b hollowmere_sanctum.blend    --python export_hotzones.py -- sanctum wide
 
 # widget icons and the panel slab, straight into the site
 blender -b hollowmere_sanctum.blend    --python render_ui.py -- sanctum    ../public/ui
@@ -75,3 +79,15 @@ face flip, or they end up either invisible or solid.
 the brightness flicker frame to frame. `shadow_maximum_resolution = 0.012`
 on every light keeps it inside the pool. If a render starts shimmering, check
 the log for that message first.
+
+It overflows again at 2560 wide — 2923 tiles against a pool of 2048 — so the
+wide pass raises the same setting to 0.018, the lowest value that clears it.
+With that in place the central 1920 band of a wide frame matches its 16:9
+counterpart to within 0.4 of a grey level, which is the coarser shadow maps and
+nothing else.
+
+**The wide pass adds pixels, it does not reframe.** `sensor_fit = 'VERTICAL'`
+with `sensor_height = 20.25` freezes the vertical field of view at the 16:9
+value, so a longer or shorter lens is never needed and no keyframe changes.
+Shortening the lens instead — the obvious move — would squeeze the composition
+and force the room to be enlarged.

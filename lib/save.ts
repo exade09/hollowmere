@@ -40,7 +40,7 @@ const DEFAULTS: Save = {
   vigilCount: 0,
   hasKey: false,
   stirred: 0,
-  audio: { track: 'wind', vol: 0.5, muted: true },
+  audio: { track: 'harvest-dawn', vol: 0.45, muted: true },
 };
 
 function dayOf(ts: number) {

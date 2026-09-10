@@ -88,6 +88,7 @@ app/
   api/config/route.ts contract and chain, so they can move without a rebuild
 components/
   Stage.tsx           idle video + hover clip + transparent SVG hotzones
+  AudioBed.tsx        one looping audio element, fades between tracks
   Chrome.tsx          permanent bottom bar
   Panel.tsx           modal shell with focus handling and escape
   panels/index.tsx    the ten widgets
@@ -96,11 +97,13 @@ lib/
   content.ts          every readable string in one file
   save.ts             localStorage shape and the two derived timers
 public/clips/
-  sanctum/{1080p,720p,poster}/     nine clips
-  undercroft/{1080p,720p,poster}/  four clips
+  sanctum/ sanctum-21x9/           nine clips each, {1080p,720p,poster}
+  undercroft/ undercroft-21x9/     four clips each
 public/ui/
   icons/              one low-poly portrait per interactive object
+  wick.png            the character, for the mirror and the share card
   panel_stone.png     the faceted slab behind every panel
+public/audio/         the four tracks the spheres play
 blender/              the scenes and the scripts that generate all of the above
 ```
 
@@ -124,21 +127,31 @@ never a black flash. Hotzones are `<rect role="button" tabindex="0">` inside one
 for free and keeps the coordinates resolution-independent.
 
 Those rectangles are **not hand-placed**. They are exported from the Blender
-scenes through their render cameras by `scene/export_hotzones.py`, so a hotzone
-sits exactly on top of the object in the video.
+scenes through their render cameras by `scene/export_hotzones.py`, once per
+aspect, so a hotzone sits exactly on top of the object in the video. A zone
+carries one label and one action and a rectangle per aspect, so the interaction
+logic is identical on both — it never learns that two aspects exist.
 
-The frame is always letterboxed, never cropped. A 16:9 room shown with
-`object-fit: cover` on a 16:10 laptop loses its left and right edges — which is
-both worse to look at and unusable, because that is where the door and the
-raven live. `contain` fits the whole room into the ground colour instead, and a
-vignette sinks the bars into the frame so they do not read as a bug.
+Two aspects are authored: **1920×1080** and **2560×1080**. They are the same
+picture from the same camera. The wide pass locks the Blender sensor to its
+vertical dimension, which freezes the vertical field of view at the 16:9 value
+and adds the extra pixels at the sides — nothing is reframed, no keyframe
+differs, and the exported hotzone `y` values come out identical across the two.
+A window at 2.0:1 or wider gets the wide set.
+
+Within whichever set is chosen, the frame is letterboxed, never cropped. A 16:9
+room shown with `object-fit: cover` on a 16:10 laptop loses its left and right
+edges — which is both worse to look at and unusable, because that is where the
+door and the raven live. `contain` fits the whole room into the ground colour
+instead, and a vignette sinks the bars into the frame so they do not read as a
+bug.
 
 Opening a widget does not drop the room back to idle: the zone that opened the
 panel stays locked on screen underneath it, so the character is still mid-gesture
 while you read.
 
-Clips are served at 1080p above 1280px wide and 720p below. Total media weight
-is under 12 MB for thirteen clips.
+Clips are served at full height above 1280px wide and at 720 height below.
+Twenty-six clips across both aspects come to roughly 13 MB.
 
 ## What is real and what is a placeholder
 
@@ -147,10 +160,14 @@ hold map, the three-ring chest lock, the shareable progress card, the night
 tally, the candle that burns down in real time, the rites checklist, the sealed
 gate with its key, and travel between both rooms in either direction.
 
+The spheres play four real tracks, credited by name in the panel. They are
+copyrighted recordings, so before this goes anywhere public that is a rights
+question to settle, not a technical one. Files live in `public/audio` and the
+list is `SPHERES` in `lib/content.ts`.
+
 Waiting on content, and marked `TODO` in `lib/content.ts`:
 
 - the founder's note that the chest lock unlocks;
-- the ambient loops for the spheres;
 - the real social links and the press kit;
 - the third location behind the sealed gate.
 

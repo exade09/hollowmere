@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import AudioBed from '@/components/AudioBed';
 import Chrome from '@/components/Chrome';
 import Stage from '@/components/Stage';
 import PanelHost from '@/components/panels';
@@ -54,6 +55,8 @@ export default function Home() {
   return (
     <main>
       <Stage scene={SCENES[scene]} onZone={onZone} locked={panel ? lockedZone : null} />
+
+      {save && <AudioBed save={save} started={booted} />}
 
       {save && (
         <Chrome

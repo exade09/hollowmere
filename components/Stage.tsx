@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CANVAS, Scene, Zone } from '@/lib/scenes';
+import { Aspect, CANVASES, Scene, Zone, aspectFor } from '@/lib/scenes';
 
 type Props = {
   scene: Scene;
@@ -17,34 +17,42 @@ type Props = {
  * A scene is a looping idle video, a hover clip layered on top, and a
  * transparent SVG of hotzone rectangles.
  *
- * The frame is authored once at 1920x1080 and always letterboxed, never
- * cropped: a room that gets its sides cut off on a 16:10 laptop is both worse
- * to look at and unusable, because the door and the raven end up outside the
- * window. The SVG uses the matching preserveAspectRatio, so a hotzone stays
- * exactly on its object at any window size.
+ * Two aspects are authored, 16:9 and 21:9, and they are the same picture from
+ * the same camera — the wide pass keeps the vertical field of view and adds its
+ * pixels at the sides. The window picks one, and the frame is then letterboxed
+ * rather than cropped: a room that loses its edges is both worse to look at and
+ * partly unusable, because that is where the door and the raven live.
+ *
+ * The interaction logic knows nothing about any of this. Zones carry the same
+ * labels and actions in both aspects; only their rectangles differ.
  */
 export default function Stage({ scene, onZone, locked }: Props) {
   const [hd, setHd] = useState(true);
+  const [aspect, setAspect] = useState<Aspect>('16x9');
   const [active, setActive] = useState<Zone | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [clipReady, setClipReady] = useState(false);
   const idleRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    const pick = () => setHd(window.innerWidth > 1280);
+    const pick = () => {
+      setHd(window.innerWidth > 1280);
+      setAspect(aspectFor(window.innerWidth, window.innerHeight));
+    };
     pick();
     window.addEventListener('resize', pick);
     return () => window.removeEventListener('resize', pick);
   }, []);
 
   const res = hd ? '1080p' : '720p';
+  const dir = scene.dirs[aspect];
   const src = useCallback(
-    (clip: string) => `/clips/${scene.dir}/${res}/${clip}.mp4`,
-    [scene.dir, res],
+    (clip: string) => `/clips/${dir}/${res}/${clip}.mp4`,
+    [dir, res],
   );
   const poster = useCallback(
-    (clip: string) => `/clips/${scene.dir}/poster/${clip}.jpg`,
-    [scene.dir],
+    (clip: string) => `/clips/${dir}/poster/${clip}.jpg`,
+    [dir],
   );
 
   // Dropping hover when the scene changes keeps a stale clip off screen.
@@ -70,11 +78,12 @@ export default function Stage({ scene, onZone, locked }: Props) {
   };
 
   const shown = locked && locked.clip !== scene.idle ? locked : locked ? null : active;
+  const canvas = CANVASES[aspect];
 
   return (
     <div className="stage">
       <video
-        key={`${scene.id}-idle-${res}`}
+        key={`${scene.id}-idle-${aspect}-${res}`}
         ref={idleRef}
         className="stage-frame"
         src={src(scene.idle)}
@@ -96,7 +105,7 @@ export default function Stage({ scene, onZone, locked }: Props) {
             aria-hidden="true"
           />
           <video
-            key={`${scene.id}-${shown.clip}-${res}`}
+            key={`${scene.id}-${shown.clip}-${aspect}-${res}`}
             className={`stage-frame ${clipReady ? '' : 'hidden'}`}
             src={src(shown.clip)}
             autoPlay
@@ -111,31 +120,38 @@ export default function Stage({ scene, onZone, locked }: Props) {
 
       <div className="stage-vignette" aria-hidden="true" />
 
-      <svg className="hotzones" viewBox={`0 0 ${CANVAS.w} ${CANVAS.h}`} preserveAspectRatio="xMidYMid meet">
-        {scene.zones.map((z) => (
-          <rect
-            key={z.label}
-            className="hotzone"
-            x={z.rect.x}
-            y={z.rect.y}
-            width={z.rect.w}
-            height={z.rect.h}
-            role="button"
-            tabIndex={0}
-            aria-label={z.label}
-            onMouseEnter={() => enter(z)}
-            onMouseLeave={leave}
-            onFocus={() => enter(z)}
-            onBlur={leave}
-            onClick={() => onZone(z)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onZone(z);
-              }
-            }}
-          />
-        ))}
+      <svg
+        className="hotzones"
+        viewBox={`0 0 ${canvas.w} ${canvas.h}`}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {scene.zones.map((z) => {
+          const r = z.rects[aspect];
+          return (
+            <rect
+              key={z.label}
+              className="hotzone"
+              x={r.x}
+              y={r.y}
+              width={r.w}
+              height={r.h}
+              role="button"
+              tabIndex={0}
+              aria-label={z.label}
+              onMouseEnter={() => enter(z)}
+              onMouseLeave={leave}
+              onFocus={() => enter(z)}
+              onBlur={leave}
+              onClick={() => onZone(z)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onZone(z);
+                }
+              }}
+            />
+          );
+        })}
       </svg>
 
       <div className={`zone-label ${hovered ? 'on' : ''}`}>{hovered ?? ''}</div>
