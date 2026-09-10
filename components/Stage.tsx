@@ -35,6 +35,14 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
   const [active, setActive] = useState<Zone | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [clipReady, setClipReady] = useState(false);
+  /**
+   * Set when the hover clip cannot be decoded. It matters because a video
+   * element that fails to paint is not blank, it is transparent: the idle loop
+   * underneath shows through, so the room looks like nothing happened even
+   * though the zone reacted. Falling back to the clip's poster keeps the pose
+   * the visitor asked for on screen.
+   */
+  const [clipFailed, setClipFailed] = useState(false);
   const idleRef = useRef<HTMLVideoElement | null>(null);
   const hoverRef = useRef<HTMLVideoElement | null>(null);
   const cawRef = useRef<HTMLAudioElement | null>(null);
@@ -66,6 +74,7 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
     setActive(null);
     setHovered(null);
     setClipReady(false);
+    setClipFailed(false);
   }, [scene.id]);
 
   const enter = (z: Zone) => {
@@ -73,6 +82,7 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
     setHovered(z.label);
     if (z.clip === scene.idle) return; // zone with no clip of its own
     setClipReady(false);
+    setClipFailed(false);
     setActive(z);
   };
 
@@ -81,6 +91,7 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
     setHovered(null);
     setActive(null);
     setClipReady(false);
+    setClipFailed(false);
   };
 
   const shown = locked && locked.clip !== scene.idle ? locked : locked ? null : active;
@@ -89,13 +100,28 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
   // Last resort for the same race: if a clip is on screen and playable but
   // nothing told us, notice within a frame or two rather than never.
   useEffect(() => {
-    if (!shown || clipReady) return;
+    if (!shown || clipReady || clipFailed) return;
     const tick = window.setInterval(() => {
       const v = hoverRef.current;
       if (v && v.readyState >= 3) setClipReady(true);
     }, 120);
     return () => window.clearInterval(tick);
-  }, [shown, clipReady]);
+  }, [shown, clipReady, clipFailed]);
+
+  /**
+   * Only ever decode one clip at a time. The idle loop and a hover clip are
+   * both 2560x1080 in the wide set, and a machine that will not give the page
+   * two simultaneous hardware decode sessions drops the second one — which is
+   * invisible, because the failed video is transparent rather than black. The
+   * idle frame stays on screen underneath either way, so pausing it costs
+   * nothing to look at and takes the contention away.
+   */
+  useEffect(() => {
+    const v = idleRef.current;
+    if (!v) return;
+    if (shown) v.pause();
+    else v.play().catch(() => { /* waiting on a gesture; the poster stands in */ });
+  }, [shown]);
 
   // Warm the hover posters once the room is up, so the first hover over a zone
   // never shows a gap where the idle frame is still on screen. Posters only —
@@ -162,7 +188,7 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
         <>
           {/* the poster shows instantly while the clip buffers */}
           <img
-            className={`stage-frame ${clipReady ? 'hidden' : ''}`}
+            className={`stage-frame ${clipReady && !clipFailed ? 'hidden' : ''}`}
             src={poster(shown.clip)}
             alt=""
             aria-hidden="true"
@@ -171,6 +197,7 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
             key={`${scene.id}-${shown.clip}-${aspect}-${res}`}
             ref={(el) => {
               hoverRef.current = el;
+              if (clipFailed) return;
               // A cached clip can reach canplay before React attaches the
               // handler below, and then the event never arrives: the poster
               // stays on top of a video that is playing underneath it, so the
@@ -178,7 +205,7 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
               // the state here as well as listening for it closes that race.
               if (el && el.readyState >= 3) setClipReady(true);
             }}
-            className={`stage-frame ${clipReady ? '' : 'hidden'}`}
+            className={`stage-frame ${clipReady && !clipFailed ? '' : 'hidden'}`}
             src={src(shown.clip)}
             autoPlay
             loop
@@ -187,6 +214,10 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
             preload="auto"
             onCanPlay={() => setClipReady(true)}
             onLoadedData={() => setClipReady(true)}
+            onError={() => {
+              setClipFailed(true);
+              setClipReady(false);
+            }}
           />
         </>
       )}
