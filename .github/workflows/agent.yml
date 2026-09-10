@@ -1,0 +1,49 @@
+name: agent tick
+
+# Vercel's Hobby plan runs a cron job once a day at most, which is fine for
+# one post but not for an account with a pulse. GitHub Actions schedules are
+# free and unrestricted, so this is the real heartbeat and vercel.json's cron
+# is the belt to its braces. Either can be removed without touching the other.
+#
+# Two repository secrets are required — Settings -> Secrets and variables ->
+# Actions:
+#   AGENT_URL    https://<your-domain>/api/agent/tick
+#   CRON_SECRET  the same value as the CRON_SECRET environment variable
+#
+# The agent enforces its own minimum gap between posts, so a schedule that
+# fires more often than the gap simply returns "too soon" and costs nothing.
+
+on:
+  schedule:
+    - cron: '0 8,16,21 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Ignore the minimum gap between posts'
+        type: boolean
+        default: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake the agent
+        env:
+          AGENT_URL: ${{ secrets.AGENT_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          if [ -z "$AGENT_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "AGENT_URL or CRON_SECRET is not set; nothing to call."
+            exit 1
+          fi
+          url="$AGENT_URL"
+          if [ "$FORCE" = "true" ]; then url="$url?force=1"; fi
+          code=$(curl -sS -o response.json -w '%{http_code}' -X POST "$url" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          echo "HTTP $code"
+          cat response.json
+          echo
+          # A 500 from one tick is not worth a red run: the next one retries,
+          # and the store is untouched when a tick fails. Anything else is.
+          if [ "$code" != "200" ] && [ "$code" != "500" ]; then exit 1; fi
