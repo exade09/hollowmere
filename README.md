@@ -46,6 +46,38 @@ When the address needs to change without a redeploy, wire
 `app/api/config/route.ts`. The front end already reads from that endpoint's
 shape, so nothing above it has to move.
 
+## Deploying
+
+Import `exade09/hollowmere` in Vercel. The repository root is the Next app, so
+the framework preset, build command and output directory are all detected — no
+configuration to fill in.
+
+Then set the variables. Either paste them in *Project → Settings → Environment
+Variables*, or run them from a clone:
+
+```bash
+vercel login
+vercel link                       # pick the hollowmere project
+printf 'Robinhood Chain' | vercel env add NEXT_PUBLIC_CHAIN production
+printf 'https://robinhoodchain.blockscout.com/token/' | vercel env add NEXT_PUBLIC_EXPLORER production
+printf 'HOLLOW' | vercel env add NEXT_PUBLIC_TICKER production
+printf '0x...' | vercel env add NEXT_PUBLIC_CONTRACT production
+vercel --prod                     # or just push to main
+```
+
+Repeat with `preview` in place of `production` if preview deployments should
+show the same values.
+
+Those three chain values are also compiled in as defaults in `lib/content.ts`,
+so the site is correct without them; setting them explicitly is worth doing
+anyway, because it puts the values somewhere a person can change without
+touching code.
+
+`NEXT_PUBLIC_CONTRACT` is deliberately left blank until the token is real. An
+address that is almost right is worse than none on a page people copy from, so
+while it is empty the bottom bar reads "address not spoken yet" and the copy
+button stays disabled.
+
 ## Layout
 
 ```
