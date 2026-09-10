@@ -36,6 +36,7 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [clipReady, setClipReady] = useState(false);
   const idleRef = useRef<HTMLVideoElement | null>(null);
+  const hoverRef = useRef<HTMLVideoElement | null>(null);
   const cawRef = useRef<HTMLAudioElement | null>(null);
   const cawFired = useRef(false);
 
@@ -84,6 +85,38 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
 
   const shown = locked && locked.clip !== scene.idle ? locked : locked ? null : active;
   const canvas = CANVASES[aspect];
+
+  // Last resort for the same race: if a clip is on screen and playable but
+  // nothing told us, notice within a frame or two rather than never.
+  useEffect(() => {
+    if (!shown || clipReady) return;
+    const tick = window.setInterval(() => {
+      const v = hoverRef.current;
+      if (v && v.readyState >= 3) setClipReady(true);
+    }, 120);
+    return () => window.clearInterval(tick);
+  }, [shown, clipReady]);
+
+  // Warm the hover posters once the room is up, so the first hover over a zone
+  // never shows a gap where the idle frame is still on screen. Posters only —
+  // the clips themselves are far larger and arrive fast enough on their own.
+  useEffect(() => {
+    let cancelled = false;
+    const queue = scene.zones
+      .filter((z) => z.clip !== scene.idle)
+      .map((z) => poster(z.clip));
+    const warm = (i: number) => {
+      if (cancelled || i >= queue.length) return;
+      const img = new Image();
+      img.onload = img.onerror = () => warm(i + 1);
+      img.src = queue[i];
+    };
+    const start = window.setTimeout(() => warm(0), 1200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(start);
+    };
+  }, [scene, poster]);
 
   // The caw belongs to the Sanctum's idle loop and nowhere else: the hover
   // clips do not animate the beak. Polled rather than driven by timeupdate,
@@ -136,6 +169,15 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
           />
           <video
             key={`${scene.id}-${shown.clip}-${aspect}-${res}`}
+            ref={(el) => {
+              hoverRef.current = el;
+              // A cached clip can reach canplay before React attaches the
+              // handler below, and then the event never arrives: the poster
+              // stays on top of a video that is playing underneath it, so the
+              // room shows one frozen frame instead of the animation. Reading
+              // the state here as well as listening for it closes that race.
+              if (el && el.readyState >= 3) setClipReady(true);
+            }}
             className={`stage-frame ${clipReady ? '' : 'hidden'}`}
             src={src(shown.clip)}
             autoPlay
@@ -144,6 +186,7 @@ export default function Stage({ scene, onZone, locked, sfx }: Props) {
             playsInline
             preload="auto"
             onCanPlay={() => setClipReady(true)}
+            onLoadedData={() => setClipReady(true)}
           />
         </>
       )}
