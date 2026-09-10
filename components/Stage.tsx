@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CANVAS, Scene, Zone } from '@/lib/scenes';
 
 type Props = {
@@ -19,6 +19,7 @@ export default function Stage({ scene, onZone }: Props) {
   const [hd, setHd] = useState(true);
   const [fit, setFit] = useState<'cover' | 'contain'>('cover');
   const [active, setActive] = useState<Zone | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
   const [clipReady, setClipReady] = useState(false);
   const idleRef = useRef<HTMLVideoElement | null>(null);
   const clipRef = useRef<HTMLVideoElement | null>(null);
@@ -48,23 +49,25 @@ export default function Stage({ scene, onZone }: Props) {
   // Dropping hover when the scene changes keeps a stale clip off screen.
   useEffect(() => {
     setActive(null);
+    setHovered(null);
     setClipReady(false);
   }, [scene.id]);
 
   const enter = (z: Zone) => {
+    setHovered(z.label);
     if (z.clip === scene.idle) return; // zone with no clip of its own
     setClipReady(false);
     setActive(z);
   };
 
   const leave = () => {
+    setHovered(null);
     setActive(null);
     setClipReady(false);
   };
 
   const viewBox = `0 0 ${CANVAS.w} ${CANVAS.h}`;
   const par = fit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet';
-  const hovered = useMemo(() => active?.label ?? null, [active]);
 
   return (
     <div className="stage">
