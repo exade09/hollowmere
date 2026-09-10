@@ -106,6 +106,16 @@ export const WICK: [string, string][] = [
   ['status', 'cursed. otherwise fine'],
 ];
 
+/**
+ * The chest lock, and the only place its answer is written down.
+ *
+ * The chest panel tells the visitor the same marks are cut into the cage wall,
+ * so both panels must read this one array — the order below is the order the
+ * scratches appear in downstairs, top to bottom.
+ */
+export const LOCK_GLYPHS = ['ᛗ', 'ᚦ', 'ᛟ', 'ᚱ', 'ᛊ', 'ᛉ', 'ᚨ', 'ᛝ'];
+export const LOCK_ORDER = [5, 2, 6];
+
 /** Scratches on the cage wall. Unlocked by how many nights you have come back. */
 export const TALLY_NOTES: { at: number; text: string }[] = [
   { at: 1, text: 'First mark. It gets easier after this one.' },

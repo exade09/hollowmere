@@ -568,3 +568,31 @@ a:hover { border-bottom-color: var(--spectre); }
   .mirror-figure { grid-template-columns: 1fr; }
   .mirror-figure .wick { max-width: 200px; }
 }
+
+/* The three marks cut into the cage wall — the chest lock's answer, and the
+   only place it is written down. Deliberately legible: this is a discovery,
+   not a security measure. */
+.label-sm {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 22px 0 8px;
+}
+.scratches {
+  display: flex;
+  gap: 16px;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.1));
+  border-left: 2px solid rgba(217, 122, 61, 0.5);
+  clip-path: var(--cut-sm);
+}
+.scratches b {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 400;
+  color: var(--ember);
+  text-shadow: 0 0 14px rgba(217, 122, 61, 0.3);
+}

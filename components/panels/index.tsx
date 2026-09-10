@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Panel from '@/components/Panel';
 import {
-  ARCHIVE, BRAND, HOARD_NOTE, HOLD, NOTES, RITES, SOCIALS, SPHERES, TALLY_NOTES, WICK,
+  ARCHIVE, BRAND, HOARD_NOTE, HOLD, LOCK_GLYPHS, LOCK_ORDER, NOTES, RITES, SOCIALS,
+  SPHERES, TALLY_NOTES, WICK,
 } from '@/lib/content';
 import {
   CANDLE_HOURS, NIGHTS_FOR_KEY, Save, candleState, markBlock, patch, read,
@@ -122,8 +123,8 @@ function Raven({ save }: { save: Save }) {
 }
 
 /* ------------------------------------------- the chest: the lock and reward */
-const GLYPHS = ['ᛗ', 'ᚦ', 'ᛟ', 'ᚱ', 'ᛊ', 'ᛉ', 'ᚨ', 'ᛝ'];
-const TARGET = [5, 2, 6];
+const GLYPHS = LOCK_GLYPHS;
+const TARGET = LOCK_ORDER;
 
 function Chest({ save, refresh }: { save: Save; refresh: () => void }) {
   const solved = save.lockSolvedAt !== null;
@@ -460,6 +461,12 @@ function Cage({ save }: { save: Save }) {
         ))}
       </div>
       {next && <p className="dim">The next line shows up on night {next.at}.</p>}
+      <div className="label-sm">cut deeper than the rest, top to bottom</div>
+      <div className="scratches" aria-label="three marks cut into the wall">
+        {LOCK_ORDER.map((g, i) => (
+          <b key={i}>{LOCK_GLYPHS[g]}</b>
+        ))}
+      </div>
     </>
   );
 }
