@@ -9,10 +9,26 @@ import bpy, json, sys
 from mathutils import Vector
 from bpy_extras.object_utils import world_to_camera_view
 
-which = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else 'sanctum'
+argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+which = argv[0] if argv else 'sanctum'
+WIDE = 'wide' in argv
 sc = bpy.context.scene
 cam = sc.camera
-W, H = 1920, 1080
+W, H = (2560, 1080) if WIDE else (1920, 1080)
+# The render resolution has to be set before anything is projected, not just the
+# sensor: world_to_camera_view derives the frame from camera.view_frame(scene),
+# which reads the scene's render aspect — not the W/H below. Leaving the blend's
+# own resolution in place made the wide pass project through an unchanged 16:9
+# camera and then scale the result by 2560/1920, which put every rectangle a
+# few hundred pixels off its object at the edges of the frame.
+sc.render.resolution_x = W
+sc.render.resolution_y = H
+sc.render.pixel_aspect_x = 1.0
+sc.render.pixel_aspect_y = 1.0
+if WIDE:
+    # match the 21:9 render exactly, or the rectangles land off their objects
+    cam.data.sensor_fit = 'VERTICAL'
+    cam.data.sensor_height = 36.0 * 9 / 16
 
 GROUPS = {
     'sanctum': [
@@ -56,4 +72,4 @@ for name, prefixes in GROUPS[which]:
     y0, y1 = max(0, min(ys)), min(H, max(ys))
     out[name] = {'x': round(x0), 'y': round(y0), 'w': round(x1 - x0), 'h': round(y1 - y0)}
 
-print("HOTZONES " + which + " " + json.dumps(out))
+print("HOTZONES " + which + ("-wide" if WIDE else "") + " " + json.dumps(out))

@@ -91,3 +91,25 @@ with `sensor_height = 20.25` freezes the vertical field of view at the 16:9
 value, so a longer or shorter lens is never needed and no keyframe changes.
 Shortening the lens instead — the obvious move — would squeeze the composition
 and force the room to be enlarged.
+
+**Hotzones: set the render resolution before you project anything.**
+`world_to_camera_view` takes its frame from `camera.view_frame(scene)`, which
+reads `scene.render`'s aspect ratio — not whatever width the script is about to
+multiply by. `export_hotzones.py` used to change only the sensor, so the wide
+pass projected through a camera that was still 16:9 and then scaled the result
+by 2560/1920. The rectangles came out exactly right at the centre of the frame
+and drifted to roughly 200 px of error at the door, and the mistake survived
+the obvious check, because the `y` values are identical either way.
+
+The right numbers are a pure translation: **wide x = narrow x + 320, width
+unchanged.** That is what a frozen vertical field of view means — the extra
+640 px are 320 on each side, so nothing on screen changes size. The door is the
+only exception, and only because the 16:9 frame cut it off at the edge. If a
+future export disagrees with `narrow + 320`, the export is wrong.
+
+**Keep every video tier on `64k x 27k` with `k` even.** The wide low tier was
+encoded as 1720x720, which is not 64:27, so ffmpeg hid the remainder in a
+non-square SAR (128:129). The SVG hotzone layer trusts the 2560x1080 `viewBox`
+and would sit about 14 px off that picture. It is 1664x702 now: exactly 64:27,
+and both sides even, which h.264 requires — 1600x675 is the right shape but
+fails to encode at all.
