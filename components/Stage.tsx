@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { RAVEN_CAW } from '@/lib/content';
 import { Aspect, CANVASES, Scene, Zone, aspectFor } from '@/lib/scenes';
 
 type Props = {
@@ -11,6 +12,8 @@ type Props = {
    * panel is open, so opening a widget does not snap the room back to idle.
    */
   locked?: Zone | null;
+  /** Sound state, for the raven's caw. Off until the visitor enables audio. */
+  sfx?: { on: boolean; vol: number };
 };
 
 /**
@@ -26,13 +29,15 @@ type Props = {
  * The interaction logic knows nothing about any of this. Zones carry the same
  * labels and actions in both aspects; only their rectangles differ.
  */
-export default function Stage({ scene, onZone, locked }: Props) {
+export default function Stage({ scene, onZone, locked, sfx }: Props) {
   const [hd, setHd] = useState(true);
   const [aspect, setAspect] = useState<Aspect>('16x9');
   const [active, setActive] = useState<Zone | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [clipReady, setClipReady] = useState(false);
   const idleRef = useRef<HTMLVideoElement | null>(null);
+  const cawRef = useRef<HTMLAudioElement | null>(null);
+  const cawFired = useRef(false);
 
   useEffect(() => {
     const pick = () => {
@@ -80,6 +85,31 @@ export default function Stage({ scene, onZone, locked }: Props) {
   const shown = locked && locked.clip !== scene.idle ? locked : locked ? null : active;
   const canvas = CANVASES[aspect];
 
+  // The caw belongs to the Sanctum's idle loop and nowhere else: the hover
+  // clips do not animate the beak. Polled rather than driven by timeupdate,
+  // which only fires about four times a second and would miss the mark.
+  const cawArmed = scene.id === 'sanctum' && !shown && !!sfx?.on;
+  useEffect(() => {
+    if (!cawArmed) {
+      cawFired.current = false;
+      return;
+    }
+    const tick = window.setInterval(() => {
+      const v = idleRef.current;
+      const a = cawRef.current;
+      if (!v || !a || v.paused) return;
+      const t = v.currentTime;
+      if (t < RAVEN_CAW.at - 0.4) cawFired.current = false;
+      if (!cawFired.current && t >= RAVEN_CAW.at) {
+        cawFired.current = true;
+        a.currentTime = 0;
+        a.volume = Math.min(1, (sfx?.vol ?? 0) * RAVEN_CAW.gain);
+        a.play().catch(() => { /* still waiting on a gesture */ });
+      }
+    }, 60);
+    return () => window.clearInterval(tick);
+  }, [cawArmed, sfx?.vol]);
+
   return (
     <div className="stage">
       <video
@@ -117,6 +147,8 @@ export default function Stage({ scene, onZone, locked }: Props) {
           />
         </>
       )}
+
+      <audio ref={cawRef} src={RAVEN_CAW.file} preload="auto" aria-hidden="true" />
 
       <div className="stage-vignette" aria-hidden="true" />
 

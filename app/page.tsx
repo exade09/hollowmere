@@ -54,7 +54,12 @@ export default function Home() {
 
   return (
     <main>
-      <Stage scene={SCENES[scene]} onZone={onZone} locked={panel ? lockedZone : null} />
+      <Stage
+        scene={SCENES[scene]}
+        onZone={onZone}
+        locked={panel ? lockedZone : null}
+        sfx={{ on: !!save && !save.audio.muted && booted, vol: save?.audio.vol ?? 0 }}
+      />
 
       {save && <AudioBed save={save} started={booted} />}
 

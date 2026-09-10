@@ -180,3 +180,18 @@ export const SPHERES: Sphere[] = [
     note: 'always available, and cheaper to keep',
   },
 ];
+
+/**
+ * The raven's caw, trimmed to a single call and timed to the beak.
+ *
+ * In the Sanctum's idle loop the beak keys sit at frames 97, 114, 126 and 142
+ * of 240 at 24 fps: it starts opening at 4.04 s, is widest from 4.75 s to
+ * 5.25 s, and is shut again by 5.92 s. The clip is 0.40 s with its loudest
+ * 120 ms up front, so starting at 4.6 s lands the call on the widest point.
+ */
+export const RAVEN_CAW = {
+  file: '/audio/sfx/raven-caw.mp3',
+  at: 4.6,
+  /** Quieter than the music, which it has to sit on top of. */
+  gain: 0.75,
+};
