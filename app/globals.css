@@ -596,3 +596,121 @@ a:hover { border-bottom-color: var(--spectre); }
   color: var(--ember);
   text-shadow: 0 0 14px rgba(217, 122, 61, 0.3);
 }
+
+/* ------------------------------------------------------------ review desk
+   The private page where drafts are read and approved. Cut from the same
+   material as the widgets — chamfered plates, mono labels, one warm accent —
+   so it does not read as a bolted-on admin panel. Single column throughout:
+   it is used on a phone more often than not. */
+.agent {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 34px 18px 96px;
+}
+.agent h1 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 1.1;
+  margin: 0 0 6px;
+}
+.agent-h2 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  font-size: 19px;
+  margin: 40px 0 12px;
+  color: var(--muted);
+}
+.agent-lead { color: var(--muted); margin: 0 0 22px; max-width: 52ch; }
+.agent-meta { font-family: var(--font-mono), monospace; font-size: 12px; color: var(--muted); margin: 0; }
+.agent-meta b { color: var(--bone); font-weight: 500; }
+
+.agent-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.agent-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.agent-gate { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+.agent-gate input {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 11px 14px;
+  clip-path: var(--cut-sm);
+  background: linear-gradient(150deg, #241f30, #14121c);
+  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .06);
+  border: none;
+  color: var(--bone);
+  font-family: var(--font-mono), monospace;
+  font-size: 14px;
+}
+.agent-gate input::placeholder { color: #6b6478; }
+
+.agent-note {
+  font-family: var(--font-mono), monospace;
+  font-size: 12.5px;
+  color: var(--ember);
+  margin: 0 0 18px;
+  padding-left: 11px;
+  border-left: 2px solid var(--ember);
+}
+
+.agent-card {
+  clip-path: var(--cut-md);
+  background: linear-gradient(150deg, #1b1725, #131120);
+  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .06);
+  padding: 16px 17px;
+  margin-bottom: 14px;
+}
+.agent-card.quiet { background: linear-gradient(150deg, #17141f, #121019); }
+.agent-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-bottom: 12px; }
+.agent-card-foot { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.agent-tag {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+.agent-tag.dim { color: var(--muted); }
+
+.pill {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  clip-path: var(--cut-sm);
+}
+.pill.draft { color: var(--ember); background: rgba(217, 122, 61, .16); }
+.pill.approved { color: var(--spectre); background: rgba(79, 214, 196, .14); }
+.pill.posted { color: var(--spectre); background: rgba(79, 214, 196, .14); }
+.pill.rejected { color: var(--muted); background: rgba(154, 147, 164, .12); }
+
+.agent-card textarea {
+  display: block;
+  width: 100%;
+  resize: vertical;
+  padding: 13px 14px;
+  clip-path: var(--cut-sm);
+  background: #0e0c15;
+  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .05);
+  border: none;
+  color: var(--bone);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.62;
+}
+.agent-text {
+  margin: 0;
+  white-space: pre-line;
+  line-height: 1.62;
+  color: var(--bone);
+}
