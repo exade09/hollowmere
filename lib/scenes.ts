@@ -1,6 +1,12 @@
 export type PanelId =
   | 'sigil' | 'raven' | 'chest' | 'books' | 'map' | 'astro' | 'mirror'
-  | 'cage' | 'altar' | 'gate';
+  | 'cage' | 'altar' | 'gate'
+  /**
+   * Talking to Wick. It has no hotzone of its own: the conversation is reached
+   * from the permanent bar at the bottom, so it is on screen in every scene
+   * and nobody has to find it by hovering the room.
+   */
+  | 'wick';
 
 export type SceneId = 'sanctum' | 'undercroft';
 

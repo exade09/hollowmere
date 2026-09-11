@@ -98,7 +98,7 @@ export default function WickChat() {
 
   return (
     <div className="wick-chat">
-      <div className="label-sm">speak into it</div>
+      <div className="label-sm">your words</div>
 
       {(turns.length > 0 || busy) && (
         <div className="wick-log">
@@ -143,7 +143,8 @@ export default function WickChat() {
 
       {note && <p className="wick-note">{note}</p>}
       <p className="wick-small">
-        he reads the chain. he does not rate it.
+        paste an address and he reads the chain for it. he states what it says and does
+        not rate it.
         <br />
         nothing here asks for a seed phrase or a private key.
       </p>

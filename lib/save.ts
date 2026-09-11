@@ -26,6 +26,16 @@ export type Save = {
   hasKey: boolean;
   /** Local-only counter, exactly as theatrical as the reference's. */
   stirred: number;
+  /**
+   * Pastimes. Scores stay on this machine, like everything else here: there is
+   * nowhere to send them, and pretending otherwise would be a promise.
+   */
+  games: {
+    /** Longest watch kept at the sconces. */
+    fireBest: number;
+    /** Fewest moves on the daily slab, keyed by its ISO date. */
+    slabBest: Record<string, number>;
+  };
   audio: { track: string; vol: number; muted: boolean };
 };
 
@@ -40,6 +50,7 @@ const DEFAULTS: Save = {
   vigilCount: 0,
   hasKey: false,
   stirred: 0,
+  games: { fireBest: 0, slabBest: {} },
   // Sound is on by default and the first track is Harvest Dawn. The click on
   // the boot overlay is the user gesture browsers demand, so the room has
   // music from the moment it opens rather than after a second deliberate act.
@@ -59,7 +70,16 @@ export function read(): Save {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULTS };
     const parsed = JSON.parse(raw) as Partial<Save>;
-    return { ...DEFAULTS, ...parsed, audio: { ...DEFAULTS.audio, ...(parsed.audio ?? {}) } };
+    return {
+      ...DEFAULTS,
+      ...parsed,
+      audio: { ...DEFAULTS.audio, ...(parsed.audio ?? {}) },
+      games: {
+        ...DEFAULTS.games,
+        ...(parsed.games ?? {}),
+        slabBest: { ...(parsed.games?.slabBest ?? {}) },
+      },
+    };
   } catch {
     return { ...DEFAULTS };
   }
@@ -115,4 +135,33 @@ export function candleState(s: Save): { pct: number; label: string } {
   if (pct < 0.25) return { pct, label: 'a stub' };
   if (pct < 0.7) return { pct, label: 'burning' };
   return { pct, label: 'burning steady' };
+}
+
+/* ------------------------------------------------------------------ pastimes */
+
+/** Today, as the key both games use to agree on what "today" is. */
+export function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Records a watch at the sconces, keeping only the best one. */
+export function recordFire(score: number): Save {
+  const s = read();
+  if (score > s.games.fireBest) {
+    s.games = { ...s.games, fireBest: score };
+    write(s);
+  }
+  return s;
+}
+
+/** Records a finished slab, keeping the fewest moves for that day. */
+export function recordSlab(moves: number): Save {
+  const s = read();
+  const key = todayKey();
+  const prev = s.games.slabBest[key];
+  if (prev === undefined || moves < prev) {
+    s.games = { ...s.games, slabBest: { ...s.games.slabBest, [key]: moves } };
+    write(s);
+  }
+  return s;
 }

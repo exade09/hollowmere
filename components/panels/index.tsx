@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Panel from '@/components/Panel';
 import Dispatches from '@/components/Dispatches';
+import KeepTheFire from '@/components/games/KeepTheFire';
+import Slab from '@/components/games/Slab';
 import WickChat from '@/components/WickChat';
 import {
   ARCHIVE, BRAND, HOARD_NOTE, HOLD, LOCK_GLYPHS, LOCK_ORDER, RITES, SOCIALS,
@@ -201,7 +203,46 @@ function Books() {
 }
 
 /* --------------------------------------------------------- the map: the hold */
-function Hold({ onTravel }: { onTravel: (to: SceneId) => void }) {
+
+/**
+ * The map holds two things: the places, and the pastimes.
+ *
+ * The pastimes are here rather than in a menu of their own because the map is
+ * where a person goes to see what there is to do. Both are real games with a
+ * local best; the third slot is shut, which is the same thing six of the nine
+ * places say and is true rather than coy.
+ */
+type Pastime = 'fire' | 'slab';
+
+const PASTIMES: { id: Pastime | null; name: string; note: string; icon: string }[] = [
+  { id: 'fire', name: 'keep the fire', note: 'they go out. put them back', icon: 'altar' },
+  { id: 'slab', name: 'the slab', note: 'one a day, the same for everyone', icon: 'map' },
+  { id: null, name: 'the long dark', note: '', icon: 'gate' },
+];
+
+function Hold({
+  onTravel,
+  save,
+  refresh,
+}: {
+  onTravel: (to: SceneId) => void;
+  save: Save;
+  refresh: () => void;
+}) {
+  const [playing, setPlaying] = useState<Pastime | null>(null);
+
+  if (playing) {
+    return (
+      <>
+        <button className="back" onClick={() => setPlaying(null)}>
+          ‹ back to the map
+        </button>
+        {playing === 'fire' && <KeepTheFire save={save} refresh={refresh} />}
+        {playing === 'slab' && <Slab save={save} refresh={refresh} />}
+      </>
+    );
+  }
+
   return (
     <>
       <p className="lead">all of it. most of it is shut.</p>
@@ -218,11 +259,11 @@ function Hold({ onTravel }: { onTravel: (to: SceneId) => void }) {
             {h.id && (
               <img
                 className="card-icon"
-                /* The sigil burned into the Sanctum floor, and the cage that
-                   defines the Undercroft. Both are objects from those rooms,
-                   rendered in the same rig as every other icon — the
-                   astrolabe and the altar were stand-ins that meant nothing. */
-                src={`/ui/icons/${h.id === 'sanctum' ? 'sigil' : 'cage'}.png`}
+                /* The centrepiece of each room: the astrolabe upstairs, the
+                   cage below. The sigil was tried first and reads as a teal
+                   smudge at this size — a place icon has to survive being
+                   26 pixels tall. */
+                src={`/ui/icons/${h.id === 'sanctum' ? 'astro' : 'cage'}.png`}
                 alt=""
                 aria-hidden="true"
               />
@@ -230,6 +271,35 @@ function Hold({ onTravel }: { onTravel: (to: SceneId) => void }) {
             <b>{h.name}</b>
             {h.note && <small>{h.note}</small>}
             <span className="tag">{h.id ? 'go in' : 'shut'}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="label-sm">pastimes</div>
+      <div className="grid">
+        {PASTIMES.map((g) => (
+          <div
+            className={`card ${g.id ? 'open travel' : ''}`}
+            key={g.name}
+            onClick={() => g.id && setPlaying(g.id)}
+            role={g.id ? 'button' : undefined}
+            tabIndex={g.id ? 0 : undefined}
+            onKeyDown={(e) => {
+              if (g.id && (e.key === 'Enter' || e.key === ' ')) setPlaying(g.id);
+            }}
+          >
+            <img className="card-icon" src={`/ui/icons/${g.icon}.png`} alt="" aria-hidden="true" />
+            <b>{g.name}</b>
+            {g.note && <small>{g.note}</small>}
+            <span className="tag">
+              {g.id === 'fire'
+                ? save.games.fireBest > 0
+                  ? `best ${save.games.fireBest}`
+                  : 'play'
+                : g.id === 'slab'
+                  ? 'play'
+                  : 'shut'}
+            </span>
           </div>
         ))}
       </div>
@@ -399,7 +469,6 @@ function Mirror({ save }: { save: Save }) {
           ))}
         </dl>
       </div>
-      <WickChat />
       <div className="share-preview">
         <canvas ref={canvas} aria-label="progress card" />
       </div>
@@ -524,8 +593,30 @@ function Gate({ save, refresh }: { save: Save; refresh: () => void }) {
   );
 }
 
+/* ------------------------------------------------------ the keeper: speech */
+
+/**
+ * Talking to him, given a room of its own.
+ *
+ * It lived inside the mirror, under the portrait and above the share card,
+ * which meant the one genuinely new thing on the site was the hardest thing on
+ * it to find. Now it is a panel with his name on it, reached from a button that
+ * is on screen in every scene.
+ */
+function Speak() {
+  return (
+    <>
+      <div className="speak-head">
+        <img src="/ui/wick.png" alt="Wick" className="speak-figure" />
+        <p className="lead">he keeps the fire, and answers when spoken to.</p>
+      </div>
+      <WickChat />
+    </>
+  );
+}
+
 /* --------------------------------------------------------------- the host */
-const META: Record<PanelId, { kicker: string; title: string; icon: string }> = {
+const META: Record<PanelId, { kicker: string; title: string; icon?: string }> = {
   sigil: { kicker: 'the sigil', title: 'MARK OF THE HOLLOW', icon: 'sigil' },
   raven: { kicker: 'the raven', title: 'WORD FROM OUTSIDE', icon: 'raven' },
   chest: { kicker: 'the chest', title: 'THE LOCK', icon: 'chest' },
@@ -536,6 +627,7 @@ const META: Record<PanelId, { kicker: string; title: string; icon: string }> = {
   cage: { kicker: 'the cage', title: 'NIGHTS KEPT', icon: 'cage' },
   altar: { kicker: 'the altar', title: 'THE LONG VIGIL', icon: 'altar' },
   gate: { kicker: 'the gate', title: 'THE SEALED GATE', icon: 'gate' },
+  wick: { kicker: 'the keeper', title: 'SPEAK TO WICK', icon: undefined },
 };
 
 export default function PanelHost({ id, onClose, onTravel, save, refresh }: HostProps) {
@@ -547,12 +639,13 @@ export default function PanelHost({ id, onClose, onTravel, save, refresh }: Host
       {id === 'raven' && <Raven save={save} />}
       {id === 'chest' && <Chest save={save} refresh={refresh} />}
       {id === 'books' && <Books />}
-      {id === 'map' && <Hold onTravel={onTravel} />}
+      {id === 'map' && <Hold onTravel={onTravel} save={save} refresh={refresh} />}
       {id === 'astro' && <Spheres save={save} refresh={refresh} />}
       {id === 'mirror' && <Mirror save={save} />}
       {id === 'cage' && <Cage save={save} />}
       {id === 'altar' && <Altar save={save} refresh={refresh} />}
       {id === 'gate' && <Gate save={save} refresh={refresh} />}
+      {id === 'wick' && <Speak />}
     </Panel>
   );
 }

@@ -809,3 +809,165 @@ a:hover { border-bottom-color: var(--spectre); }
 @media (prefers-reduced-motion: reduce) {
   .facets i { animation: none; opacity: .6; }
 }
+
+/* ------------------------------------------------------------------- pastimes
+   Two games, cut from the same stock as everything else: chamfered plates,
+   flat faces, one light direction, mono labels. No rounded corners and no
+   colour that is not already in the palette. */
+.back {
+  display: inline-block;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+.back:hover { color: var(--spectre); }
+
+.game { display: grid; gap: 16px; }
+.game-head {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.game-score {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+}
+.game-label {
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.game-foot { display: grid; gap: 12px; justify-items: start; }
+.game-foot p { margin: 0; }
+
+/* the ring of sconces */
+.ring {
+  --ring-r: 116px;
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin: 4px auto;
+}
+.ring-core {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 96px;
+  height: 96px;
+  margin: -48px 0 0 -48px;
+  background: #17141f;
+  box-shadow: var(--bevel);
+  clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+}
+.sconce {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 58px;
+  height: 58px;
+  margin: -29px 0 0 -29px;
+  display: grid;
+  place-items: center;
+  gap: 0;
+  background: #1c1827;
+  box-shadow: var(--bevel);
+  clip-path: var(--cut-sm);
+  transition: background .12s;
+}
+.sconce:disabled { cursor: default; }
+.sconce .flame {
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 20px solid var(--ember);
+  filter: drop-shadow(0 0 9px rgba(217, 122, 61, .55));
+  transition: border-bottom-color .12s;
+}
+.sconce.failing { background: #241a16; }
+.sconce.failing .flame { border-bottom-color: #6c4a2c; filter: none; }
+.sconce.dead { background: var(--blood); }
+.sconce.dead .flame { border-bottom-color: #2a2029; filter: none; }
+/* the fuse: how much of the flame is left, drawn as a shrinking bar */
+.sconce .fuse {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  height: 3px;
+  background: var(--ember);
+  transform-origin: left center;
+}
+
+/* the daily slab */
+.slab-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  width: min(300px, 100%);
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
+  padding: 3px;
+  background: #0e0c15;
+  box-shadow: var(--bevel);
+  clip-path: var(--cut-sm);
+}
+.slab-tile {
+  clip-path: var(--cut-sm);
+  background-color: #171420;
+  background-repeat: no-repeat;
+  transition: filter .12s;
+}
+.slab-tile:not(.gap):not(:disabled):hover { filter: brightness(1.22); }
+.slab-tile.gap { background: #0b0a10; box-shadow: inset 0 1px 0 rgba(0, 0, 0, .6); }
+.slab-grid.whole { gap: 0; padding: 0; }
+.slab-grid.whole .slab-tile { clip-path: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sconce, .slab-tile { transition: none; }
+}
+
+/* -------------------------------------------------------------- speak to wick
+   The conversation is the one genuinely new thing here, so it gets a permanent
+   button rather than hiding inside another panel. The teal mark is the same
+   colour as the interactive outlines in the scene, which is the site's way of
+   saying "this answers". */
+.speak-btn { color: var(--bone); }
+.speak-btn:hover { color: var(--spectre); }
+.speak-mark {
+  width: 7px;
+  height: 7px;
+  background: var(--spectre);
+  transform: rotate(45deg);
+  box-shadow: 0 0 8px rgba(79, 214, 196, .7);
+  animation: speak-pulse 3.2s ease-in-out infinite;
+}
+@keyframes speak-pulse {
+  0%, 100% { opacity: .55; }
+  50% { opacity: 1; }
+}
+
+.speak-head { display: flex; gap: 18px; align-items: center; margin-bottom: 6px; }
+.speak-head p { margin: 0; flex: 1; min-width: 0; }
+.speak-figure {
+  width: 86px;
+  flex: 0 0 86px;
+  image-rendering: auto;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, .5));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speak-mark { animation: none; opacity: .9; }
+}
+@media (max-width: 560px) {
+  .speak-head { gap: 13px; }
+  .speak-figure { width: 62px; flex-basis: 62px; }
+}

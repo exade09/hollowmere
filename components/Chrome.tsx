@@ -10,6 +10,7 @@ type Props = {
   save: Save;
   onMap: () => void;
   onSigil: () => void;
+  onSpeak: () => void;
   refresh: () => void;
 };
 
@@ -18,7 +19,7 @@ type Props = {
  * copies in one click. Same pattern as the reference, where the radio and the
  * menu were always docked there.
  */
-export default function Chrome({ scene, save, onMap, onSigil, refresh }: Props) {
+export default function Chrome({ scene, save, onMap, onSigil, onSpeak, refresh }: Props) {
   const [copied, setCopied] = useState(false);
   const ca = BRAND.contract;
 
@@ -47,6 +48,10 @@ export default function Chrome({ scene, save, onMap, onSigil, refresh }: Props) 
       </button>
 
       <button className="chrome-btn" onClick={onMap}>the hold</button>
+      <button className="chrome-btn speak-btn" onClick={onSpeak} title="talk to Wick">
+        <span className="speak-mark" aria-hidden="true" />
+        speak to wick
+      </button>
 
       <button
         className="chrome-btn"
