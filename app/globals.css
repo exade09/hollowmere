@@ -27,6 +27,10 @@
   --cut-md: polygon(13px 0, calc(100% - 13px) 0, 100% 13px, 100% calc(100% - 13px),
     calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 13px), 0 13px);
   --cut-sm: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+
+  /* Every plate is lit from the same place. Faces meet at hard edges above;
+     this is the shading that tells you which way is up. */
+  --bevel: inset 0 1px 0 rgba(232, 227, 214, .07), inset 0 -1px 0 rgba(0, 0, 0, .5);
 }
 
 * { box-sizing: border-box; }
@@ -143,8 +147,8 @@ a:hover { border-bottom-color: var(--spectre); }
   gap: 8px;
   padding: 8px 14px;
   clip-path: var(--cut-sm);
-  background: linear-gradient(150deg, #241f30, #15121d);
-  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .07);
+  background: #1e1a29;
+  box-shadow: var(--bevel);
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 11.5px;
   letter-spacing: .11em;
@@ -153,7 +157,7 @@ a:hover { border-bottom-color: var(--spectre); }
   white-space: nowrap;
   transition: color .16s, background .16s;
 }
-.chrome-btn:hover { color: var(--bone); background: linear-gradient(150deg, #2c2639, #1b1726); }
+.chrome-btn:hover { color: var(--bone); background: #282235; }
 .chrome-btn.wide { text-transform: none; letter-spacing: .04em; }
 .chrome-btn .dot { width: 7px; height: 7px; background: var(--spectre); transform: rotate(45deg); }
 .chrome-spacer { flex: 1 1 auto; }
@@ -188,7 +192,7 @@ a:hover { border-bottom-color: var(--spectre); }
   width: min(780px, 100%);
   clip-path: var(--cut-lg);
   padding: 2px;
-  background: linear-gradient(155deg, #4b4457 0%, #2a2534 38%, #191622 100%);
+  background: linear-gradient(155deg, #4b4457 0 33%, #2a2534 33% 64%, #191622 64%);
   animation: rise .22s ease;
 }
 
@@ -323,8 +327,8 @@ a:hover { border-bottom-color: var(--spectre); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); gap: 12px; }
 .card {
   clip-path: var(--cut-md);
-  background: linear-gradient(155deg, #262133 0%, #191622 62%, #16131e 100%);
-  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .06);
+  background: #1e1a29;
+  box-shadow: var(--bevel);
   padding: 14px 15px;
   display: flex;
   flex-direction: column;
@@ -341,7 +345,7 @@ a:hover { border-bottom-color: var(--spectre); }
   text-transform: uppercase;
   color: var(--muted);
 }
-.card.open { background: linear-gradient(155deg, #26333a 0%, #191f26 62%, #15181f 100%); }
+.card.open { background: #1d2830; }
 .card.open .tag { color: var(--spectre); }
 .card.lost { opacity: .55; }
 .card.travel { cursor: pointer; transition: transform .16s ease; }
@@ -353,8 +357,8 @@ a:hover { border-bottom-color: var(--spectre); }
 .btn {
   padding: 10px 17px;
   clip-path: var(--cut-sm);
-  background: linear-gradient(150deg, #2b2537, #16131f);
-  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .08);
+  background: #232030;
+  box-shadow: var(--bevel);
   font-family: var(--font-mono), monospace;
   font-size: 11.5px;
   letter-spacing: .12em;
@@ -362,11 +366,11 @@ a:hover { border-bottom-color: var(--spectre); }
   color: var(--bone);
   transition: background .16s, color .16s;
 }
-.btn:hover { background: linear-gradient(150deg, #362e46, #1d1927); }
-.btn.primary { color: var(--spectre); background: linear-gradient(150deg, #1f3a38, #14201f); }
-.btn.primary:hover { background: linear-gradient(150deg, #275049, #172b27); }
-.btn.warm { color: var(--ember); background: linear-gradient(150deg, #3a2a1e, #1e1610); }
-.btn.warm:hover { background: linear-gradient(150deg, #4d3625, #291c13); }
+.btn:hover { background: #2c2739; }
+.btn.primary { color: var(--spectre); background: #193230; }
+.btn.primary:hover { background: #20423e; }
+.btn.warm { color: var(--ember); background: #33251b; }
+.btn.warm:hover { background: #442f20; }
 .btn:disabled { opacity: .42; cursor: not-allowed; }
 
 /* contract address */
@@ -375,8 +379,8 @@ a:hover { border-bottom-color: var(--spectre); }
   align-items: center;
   gap: 12px;
   clip-path: var(--cut-md);
-  background: linear-gradient(150deg, #241f30, #14121c);
-  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .06);
+  background: #1c1827;
+  box-shadow: var(--bevel);
   padding: 13px 15px;
   font-family: var(--font-mono), monospace;
   font-size: 13px;
@@ -392,7 +396,7 @@ a:hover { border-bottom-color: var(--spectre); }
   flex: 1;
   display: flex;
   clip-path: var(--cut-sm);
-  background: linear-gradient(150deg, #221d2d, #141119);
+  background: #1a1724;
 }
 .ring-cell {
   flex: 1;
@@ -420,7 +424,13 @@ a:hover { border-bottom-color: var(--spectre); }
   background: var(--stone-dim);
   clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
 }
-.candle-fill { height: 100%; background: linear-gradient(90deg, var(--blood), var(--ember)); }
+.candle-fill {
+  height: 100%;
+  /* Cut into facets rather than poured: the wax is notched, not a meter. */
+  background:
+    repeating-linear-gradient(90deg, rgba(11, 10, 16, 0) 0 8px, rgba(11, 10, 16, .8) 8px 10px),
+    linear-gradient(90deg, var(--blood) 0 46%, var(--ember) 46%);
+}
 
 /* tally marks */
 .tally { display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: flex-end; min-height: 34px; }
@@ -437,7 +447,7 @@ a:hover { border-bottom-color: var(--spectre); }
 /* share card */
 .share-preview {
   clip-path: var(--cut-md);
-  background: linear-gradient(150deg, #262133, #15121d);
+  background: #1f1b2b;
   padding: 9px;
 }
 .share-preview canvas { display: block; width: 100%; height: auto; }
@@ -500,12 +510,12 @@ a:hover { border-bottom-color: var(--spectre); }
   width: 100%;
   padding: 12px 15px;
   clip-path: var(--cut-md);
-  background: linear-gradient(155deg, #241f30, #16131f);
-  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .06);
+  background: #1c1827;
+  box-shadow: var(--bevel);
   transition: background .16s;
 }
-.track:hover { background: linear-gradient(155deg, #2d2740, #1c1826); }
-.track.on { background: linear-gradient(155deg, #22383a, #161f21); }
+.track:hover { background: #241f33; }
+.track.on { background: #1b2f30; }
 .track-mark {
   width: 10px;
   height: 10px;
@@ -643,8 +653,8 @@ a:hover { border-bottom-color: var(--spectre); }
   min-width: 0;
   padding: 11px 14px;
   clip-path: var(--cut-sm);
-  background: linear-gradient(150deg, #241f30, #14121c);
-  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .06);
+  background: #1c1827;
+  box-shadow: var(--bevel);
   border: none;
   color: var(--bone);
   font-family: var(--font-mono), monospace;
@@ -663,12 +673,12 @@ a:hover { border-bottom-color: var(--spectre); }
 
 .agent-card {
   clip-path: var(--cut-md);
-  background: linear-gradient(150deg, #1b1725, #131120);
-  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .06);
+  background: #181524;
+  box-shadow: var(--bevel);
   padding: 16px 17px;
   margin-bottom: 14px;
 }
-.agent-card.quiet { background: linear-gradient(150deg, #17141f, #121019); }
+.agent-card.quiet { background: #141221; }
 .agent-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-bottom: 12px; }
 .agent-card-foot { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
@@ -701,7 +711,7 @@ a:hover { border-bottom-color: var(--spectre); }
   padding: 13px 14px;
   clip-path: var(--cut-sm);
   background: #0e0c15;
-  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .05);
+  box-shadow: var(--bevel);
   border: none;
   color: var(--bone);
   font-family: var(--font-body), system-ui, sans-serif;
@@ -750,7 +760,7 @@ a:hover { border-bottom-color: var(--spectre); }
   padding: 11px 14px;
   clip-path: var(--cut-sm);
   background: #0e0c15;
-  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .05);
+  box-shadow: var(--bevel);
   border: none;
   color: var(--bone);
   font-family: var(--font-body), system-ui, sans-serif;

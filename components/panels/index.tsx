@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Panel from '@/components/Panel';
+import Dispatches from '@/components/Dispatches';
 import WickChat from '@/components/WickChat';
 import {
-  ARCHIVE, BRAND, HOARD_NOTE, HOLD, LOCK_GLYPHS, LOCK_ORDER, NOTES, RITES, SOCIALS,
+  ARCHIVE, BRAND, HOARD_NOTE, HOLD, LOCK_GLYPHS, LOCK_ORDER, RITES, SOCIALS,
   SPHERES, TALLY_NOTES, WICK,
 } from '@/lib/content';
 import {
@@ -42,10 +43,7 @@ function Sigil({ save, refresh }: { save: Save; refresh: () => void }) {
 
   return (
     <>
-      <p className="lead">
-        The mark was burned into this floor long before me. This string is the only name
-        the place has.
-      </p>
+      <p className="lead">the only name this place has.</p>
       <div className="ca">
         <span className="mono">{ca || 'the address has not been spoken yet'}</span>
         <span className="chrome-spacer" />
@@ -64,12 +62,12 @@ function Sigil({ save, refresh }: { save: Save; refresh: () => void }) {
                 watch what moves
               </a>
             ) : (
-              <span className="dim">explorer not wired up yet</span>
+              <span className="dim">not wired yet</span>
             )}
           </dd>
         </div>
       </dl>
-      <p>Stir the ash? Nothing will change. But I do keep the count.</p>
+      <p>stir the ash. nothing changes. i keep the count</p>
       <div className="actions">
         <button
           className="btn primary"
@@ -89,18 +87,8 @@ function Raven({ save }: { save: Save }) {
   const keyEarned = save.nights >= NIGHTS_FOR_KEY;
   return (
     <>
-      <p className="lead">
-        The raven goes where I no longer can. It comes back with scraps. I read what
-        survived the trip.
-      </p>
-      <div className="notes">
-        {NOTES.map((n) => (
-          <div className="note fresh" key={n.date}>
-            <time>{n.date}</time>
-            <p>{n.text}</p>
-          </div>
-        ))}
-      </div>
+      <p className="lead">it goes where i cannot. it comes back with scraps.</p>
+      <Dispatches />
       <dl className="rows">
         {SOCIALS.map((s) => (
           <div className="row" key={s.name}>
@@ -116,8 +104,8 @@ function Raven({ save }: { save: Save }) {
       </dl>
       <p className={keyEarned ? '' : 'dim'}>
         {keyEarned
-          ? 'Last time it brought a rusted key. Not mine. The gate below is not mine either.'
-          : `It is holding something in its beak and will not let go. Maybe on night ${NIGHTS_FOR_KEY}.`}
+          ? 'it brought a rusted key. not mine'
+          : `something in its beak. maybe on night ${NIGHTS_FOR_KEY}`}
       </p>
     </>
   );
@@ -162,9 +150,7 @@ function Chest({ save, refresh }: { save: Save; refresh: () => void }) {
 
   return (
     <>
-      <p className="lead">
-        Three rings. Bring the marks someone already chose for us under the notch.
-      </p>
+      <p className="lead">three rings. bring the chosen marks under the notch.</p>
       <div className="lock">
         <div className="lock-marker">▼ notch</div>
         <div className="rings">
@@ -182,9 +168,7 @@ function Chest({ save, refresh }: { save: Save; refresh: () => void }) {
         </div>
       </div>
       {tries >= 6 && (
-        <p className="dim">
-          The same marks are cut into the cage wall downstairs. Top to bottom.
-        </p>
+        <p className="dim">the same marks are cut into the cage wall. top to bottom</p>
       )}
     </>
   );
@@ -192,12 +176,10 @@ function Chest({ save, refresh }: { save: Save; refresh: () => void }) {
 
 /* ----------------------------------------------------- the shelf: archive */
 function Books() {
-  const tag = { ready: 'available', soon: 'not copied out yet', lost: 'pages missing' };
+  const tag = { ready: 'take it', soon: 'not copied', lost: 'lost' };
   return (
     <>
-      <p className="lead">
-        Everything saved from the library. Some of it was not saved. That stays as it is.
-      </p>
+      <p className="lead">what was saved from the library. some of it was not.</p>
       <div className="grid">
         {ARCHIVE.map((a) => (
           <div
@@ -222,7 +204,7 @@ function Books() {
 function Hold({ onTravel }: { onTravel: (to: SceneId) => void }) {
   return (
     <>
-      <p className="lead">The holding, all of it. Most of it is shut. I do not go there either.</p>
+      <p className="lead">all of it. most of it is shut.</p>
       <div className="grid">
         {HOLD.map((h) => (
           <div
@@ -236,13 +218,17 @@ function Hold({ onTravel }: { onTravel: (to: SceneId) => void }) {
             {h.id && (
               <img
                 className="card-icon"
-                src={`/ui/icons/${h.id === 'sanctum' ? 'astro' : 'altar'}.png`}
+                /* The sigil burned into the Sanctum floor, and the cage that
+                   defines the Undercroft. Both are objects from those rooms,
+                   rendered in the same rig as every other icon — the
+                   astrolabe and the altar were stand-ins that meant nothing. */
+                src={`/ui/icons/${h.id === 'sanctum' ? 'sigil' : 'cage'}.png`}
                 alt=""
                 aria-hidden="true"
               />
             )}
             <b>{h.name}</b>
-            <small>{h.note}</small>
+            {h.note && <small>{h.note}</small>}
             <span className="tag">{h.id ? 'go in' : 'shut'}</span>
           </div>
         ))}
@@ -265,10 +251,7 @@ function Spheres({ save, refresh }: { save: Save; refresh: () => void }) {
 
   return (
     <>
-      <p className="lead">
-        The rings catch a sound that is not in the room. Pick one and it keeps
-        going while you walk around; it is remembered for next time.
-      </p>
+      <p className="lead">the rings catch a sound that is not in the room.</p>
       <div className="tracks">
         {SPHERES.map((s) => {
           const on = save.audio.track === s.id;
@@ -312,10 +295,7 @@ function Spheres({ save, refresh }: { save: Save; refresh: () => void }) {
           <span className="mono dim">{Math.round(save.audio.vol * 100)}</span>
         </label>
       </div>
-      <p className="dim">
-        Nothing plays until you have stepped into the room — browsers hold sound
-        back until then, and I am not going to argue with them.
-      </p>
+      <p className="dim">nothing plays until you step in. browsers hold it back</p>
     </>
   );
 }
@@ -410,9 +390,7 @@ function Mirror({ save }: { save: Save }) {
 
   return (
     <>
-      <p className="lead">
-        There is no room in the mirror. There is only how long you have been standing here.
-      </p>
+      <p className="lead">no room in the glass. only how long you have stood here.</p>
       <div className="mirror-figure">
         <img src="/ui/wick.png" alt="Wick" className="wick" />
         <dl className="rows">
@@ -439,9 +417,7 @@ function Cage({ save }: { save: Save }) {
   const next = TALLY_NOTES.find((n) => save.nights < n.at);
   return (
     <>
-      <p className="lead">
-        Someone counted nights in here. They never locked the door. There was no reason to.
-      </p>
+      <p className="lead">someone counted nights in here. the door was never locked.</p>
       <div className="tally" aria-label={`${save.nights} nights`}>
         {Array.from({ length: marks }, (_, i) => <i key={i} />)}
       </div>
@@ -462,8 +438,8 @@ function Cage({ save }: { save: Save }) {
           </div>
         ))}
       </div>
-      {next && <p className="dim">The next line shows up on night {next.at}.</p>}
-      <div className="label-sm">cut deeper than the rest, top to bottom</div>
+      {next && <p className="dim">the next line comes on night {next.at}</p>}
+      <div className="label-sm">cut deeper, top to bottom</div>
       <div className="scratches" aria-label="three marks cut into the wall">
         {LOCK_ORDER.map((g, i) => (
           <b key={i}>{LOCK_GLYPHS[g]}</b>
@@ -483,8 +459,7 @@ function Altar({ save, refresh }: { save: Save; refresh: () => void }) {
   return (
     <>
       <p className="lead">
-        My duty is to keep the fire. It burns down over {CANDLE_HOURS / 24} days, and it is
-        the only thing here that changes on its own.
+        keep the fire. it burns down over {CANDLE_HOURS / 24} days on its own.
       </p>
       <div className="candle">
         <span className="mono dim" style={{ minWidth: 122 }}>{st.label}</span>
@@ -499,7 +474,7 @@ function Altar({ save, refresh }: { save: Save; refresh: () => void }) {
         </button>
         <span className="chrome-btn wide">lit: {save.vigilCount}</span>
       </div>
-      <p className="lead" style={{ marginTop: 22 }}>rites to keep</p>
+      <div className="label-sm">rites to keep</div>
       <div className="rites">
         {RITES.map((r) => (
           <div className={`rite ${r.done ? 'done' : ''}`} key={r.text}>
@@ -520,22 +495,16 @@ function Gate({ save, refresh }: { save: Save; refresh: () => void }) {
   if (save.hasKey) {
     return (
       <>
-        <p className="lead">The key fit. There is a corridor behind the gate.</p>
-        <p>There is nothing further along it yet. I checked.</p>
-        <p className="dim">
-          Once the third place is mapped the corridor becomes a way through, on its own,
-          with no change to this page.
-        </p>
+        <p className="lead">the key fit. a corridor.</p>
+        <p>nothing along it yet. i checked</p>
+        <p className="dim">it opens on its own when the third place is mapped</p>
       </>
     );
   }
 
   return (
     <>
-      <p className="lead">
-        A chain, a padlock, and three rings cut into it. The rings are decoration: this
-        lock takes a key, not an order of marks.
-      </p>
+      <p className="lead">a chain, a padlock, three rings. the rings are decoration.</p>
       <dl className="rows">
         <div className="row"><dt>lock</dt><dd>shut</dd></div>
         <div className="row"><dt>key</dt><dd>{earned ? 'the raven brought it' : 'the raven has it'}</dd></div>
@@ -547,9 +516,8 @@ function Gate({ save, refresh }: { save: Save; refresh: () => void }) {
         </div>
       ) : (
         <p className="dim">
-          It hands the key over on night {NIGHTS_FOR_KEY}. Come back{' '}
-          {NIGHTS_FOR_KEY - save.nights} more time
-          {NIGHTS_FOR_KEY - save.nights === 1 ? '' : 's'}.
+          on night {NIGHTS_FOR_KEY}. come back {NIGHTS_FOR_KEY - save.nights} more time
+          {NIGHTS_FOR_KEY - save.nights === 1 ? '' : 's'}
         </p>
       )}
     </>

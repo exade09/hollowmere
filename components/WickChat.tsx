@@ -109,7 +109,7 @@ export default function WickChat() {
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="ask him something, or paste a contract address"
+          placeholder="ask, or paste an address"
           aria-label="speak to Wick"
           maxLength={MAX}
           disabled={busy}
@@ -121,8 +121,9 @@ export default function WickChat() {
 
       {note && <p className="wick-note">{note}</p>}
       <p className="wick-small">
-        He reads what the chain says and does not rate it. Nothing here will ever ask you
-        for a seed phrase or a private key.
+        he reads the chain. he does not rate it.
+        <br />
+        nothing here asks for a seed phrase or a private key.
       </p>
     </div>
   );

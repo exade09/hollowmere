@@ -1,9 +1,15 @@
 /**
  * Every string the visitor can read lives here.
  *
- * Anything marked TODO is a placeholder written in the world's voice on
- * purpose: the site reads as finished until the real copy arrives, instead of
- * showing "lorem ipsum" or an empty panel.
+ * One voice throughout, and it is Wick's: lower case, short, one thought at a
+ * time. Only names take capitals — HOLLOWMERE, WICK, Robinhood Chain, and the
+ * place plates in THE HOLD, which are signage rather than prose. The posts the
+ * agent writes and the answers it gives in the mirror follow the same rules, so
+ * the room and the account sound like one thing.
+ *
+ * Length is a design constraint here, not a matter of taste. These strings sit
+ * in fixed plates beside rendered icons; a sentence that wraps to three lines
+ * unbalances the plate it is in.
  */
 
 export const BRAND = {
@@ -18,37 +24,29 @@ export const BRAND = {
 };
 
 export const SOCIALS: { name: string; href: string; note: string }[] = [
-  { name: 'X', href: 'https://x.com/', note: 'the herald shouts loudest there' },
-  { name: 'Telegram', href: 'https://t.me/', note: 'where the ones who never sleep sit' },
+  { name: 'X', href: 'https://x.com/', note: 'loudest there' },
+  { name: 'Telegram', href: 'https://t.me/', note: 'for the ones who never sleep' },
 ];
 
-/** Scraps the raven brings back. Dates are ISO so they sort themselves. */
+/**
+ * Scraps the raven brings back, used until the agent has approved dispatches of
+ * its own. Dates are ISO so they sort themselves.
+ */
 export const NOTES: { date: string; text: string; href?: string }[] = [
-  {
-    date: '2026-09-10',
-    text:
-      'The Sanctum is mapped. Eight things answer to a touch, and the door down is open. ' +
-      'Below it: a cage, an altar, and a gate that stays shut.',
-  },
-  {
-    date: '2026-09-09',
-    text: 'Another night. I will not count them. I always lose the thread.',
-  },
-  {
-    date: '2026-09-08',
-    text: 'The raven came back with someone else’s note. The ink had run. I could not read it.',
-  },
+  { date: '2026-09-10', text: 'the sanctum is mapped. the door down is open' },
+  { date: '2026-09-09', text: 'another night. i lose the thread every time' },
+  { date: '2026-09-08', text: 'it brought a stranger’s note. the ink had run' },
 ];
 
 /** The roadmap, kept as a list of duties rather than quarters. */
 export const RITES: { text: string; done: boolean }[] = [
-  { text: 'map the Sanctum', done: true },
-  { text: 'go down into the Undercroft', done: true },
-  { text: 'mark everything that answers to a touch', done: true },
+  { text: 'map the sanctum', done: true },
+  { text: 'go down', done: true },
+  { text: 'mark what answers to a touch', done: true },
   { text: 'write down the raven’s voice', done: false },
-  { text: 'find the key to the gate', done: false },
+  { text: 'find the key', done: false },
   { text: 'open the third place', done: false },
-  { text: 'stop counting the nights', done: false },
+  { text: 'stop counting', done: false },
 ];
 
 /** Some volumes are deliberately lost. That is tone, not an unfinished task. */
@@ -59,50 +57,50 @@ export const ARCHIVE: {
   href?: string;
 }[] = [
   {
-    name: 'Box art',
-    note: 'the Sanctum, framed the way it would sit on a shelf',
+    name: 'box art',
+    note: 'the sanctum, framed',
     state: 'ready',
     href: '/clips/sanctum/poster/00_idle.jpg',
   },
   {
-    name: 'Wallpaper: the Sanctum',
-    note: '1920 by 1080, everything at rest',
+    name: 'the sanctum',
+    note: '1920 by 1080, at rest',
     state: 'ready',
     href: '/clips/sanctum/poster/00_idle.jpg',
   },
   {
-    name: 'Wallpaper: the Undercroft',
-    note: '1920 by 1080, everything at rest',
+    name: 'the undercroft',
+    note: '1920 by 1080, at rest',
     state: 'ready',
     href: '/clips/undercroft/poster/00_idle.jpg',
   },
-  { name: 'Press kit', note: 'palette, mark, what you may and may not do with them', state: 'soon' },
-  { name: 'Seals', note: 'twenty of them. none drawn yet', state: 'soon' },
-  { name: 'Instruction manual', note: 'pages torn out', state: 'lost' },
-  { name: 'The full rites', note: 'burnt at the edges, readable every other word', state: 'lost' },
+  { name: 'press kit', note: 'palette and mark', state: 'soon' },
+  { name: 'seals', note: 'twenty. none drawn', state: 'soon' },
+  { name: 'the manual', note: 'pages torn out', state: 'lost' },
+  { name: 'the full rites', note: 'burnt at the edges', state: 'lost' },
 ];
 
 /** Only the places that actually have a scene are open. */
 export const HOLD: { name: string; id?: 'sanctum' | 'undercroft'; note: string }[] = [
-  { name: 'THE SANCTUM', id: 'sanctum', note: 'the tower. this is where I live' },
-  { name: 'THE UNDERCROFT', id: 'undercroft', note: 'below. it is quiet down there' },
-  { name: 'THE GREAT HALL', note: 'shut. come back later' },
-  { name: 'THE HOLLOW WOOD', note: 'shut. come back later' },
-  { name: 'THE LOW QUARTER', note: 'shut. come back later' },
-  { name: 'THE CHAPEL OF ASH', note: 'shut. come back later' },
-  { name: 'THE WATCHTOWER', note: 'shut. come back later' },
-  { name: 'THE OSSUARY', note: 'shut. come back later' },
-  { name: '???', note: 'I do not remember what is in there' },
+  { name: 'THE SANCTUM', id: 'sanctum', note: 'the tower. where i live' },
+  { name: 'THE UNDERCROFT', id: 'undercroft', note: 'below. quiet down there' },
+  { name: 'THE GREAT HALL', note: '' },
+  { name: 'THE HOLLOW WOOD', note: '' },
+  { name: 'THE LOW QUARTER', note: '' },
+  { name: 'THE CHAPEL OF ASH', note: '' },
+  { name: 'THE WATCHTOWER', note: '' },
+  { name: 'THE OSSUARY', note: '' },
+  { name: '???', note: 'i do not remember' },
 ];
 
 /** Character sheet, shown in the mirror. */
 export const WICK: [string, string][] = [
   ['name', 'WICK'],
   ['height', 'shorter than you expect'],
-  ['holding', 'HOLLOWMERE, all of it'],
+  ['holding', 'all of HOLLOWMERE'],
   ['duty', 'keep the fire'],
-  ['likes', 'quiet, a steady flame, the raven'],
-  ['dislikes', 'draughts, counting nights, visitors'],
+  ['likes', 'quiet, a steady flame'],
+  ['dislikes', 'draughts, visitors'],
   ['status', 'cursed. otherwise fine'],
 ];
 
@@ -118,24 +116,22 @@ export const LOCK_ORDER = [5, 2, 6];
 
 /** Scratches on the cage wall. Unlocked by how many nights you have come back. */
 export const TALLY_NOTES: { at: number; text: string }[] = [
-  { at: 1, text: 'First mark. It gets easier after this one.' },
-  { at: 3, text: 'The raven brings food. It brought a stranger’s note too. I could not read it.' },
-  { at: 7, text: 'The door was never locked. I checked. There is simply no reason to lock it.' },
-  { at: 30, text: 'On the thirtieth night I stopped waiting. I did not stop counting.' },
-  { at: 100, text: 'A hundred. Someone is keeping the count for me now, and that is the worst part.' },
+  { at: 1, text: 'first mark. it gets easier' },
+  { at: 3, text: 'the raven brings food. and a note i could not read' },
+  { at: 7, text: 'the door was never locked. there was no reason' },
+  { at: 30, text: 'i stopped waiting. i did not stop counting' },
+  { at: 100, text: 'a hundred. someone else is counting now' },
 ];
 
 /** TODO: replace with the real founder's note — this is the reward for the lock. */
 export const HOARD_NOTE = {
-  title: 'the note at the bottom of the chest',
+  title: 'the note at the bottom',
   body: [
-    'This is where the letter from whoever started HOLLOWMERE goes: why the place ' +
-      'exists, what comes next, and why the lock had to be opened by hand instead of ' +
-      'handed over as a link.',
-    'The page is still blank. The chest is open, which means you got here first and ' +
-      'you will see the text the moment it lands.',
+    'the letter from whoever started HOLLOWMERE goes here: why the place exists, ' +
+      'and why the lock had to be opened by hand.',
+    'the page is still blank. you got here first',
   ],
-  sign: '— TODO: signature',
+  sign: '— unsigned',
 };
 
 export type Sphere = {
@@ -159,35 +155,35 @@ export const SPHERES: Sphere[] = [
     title: 'Harvest Dawn',
     artist: 'Jeremy Soule · The Elder Scrolls IV',
     file: '/audio/harvest-dawn.mp3',
-    note: 'the hour before anything is asked of you',
+    note: 'before anything is asked of you',
   },
   {
     id: 'moog-city-2',
     title: 'Moog City 2',
     artist: 'C418 · slowed',
     file: '/audio/moog-city-2.mp3',
-    note: 'someone else keeping house, a long way off',
+    note: 'someone keeping house, far off',
   },
   {
     id: 'space-ii',
     title: 'Space II',
     artist: 'Dorian Concept · slowed + reverb',
     file: '/audio/space-ii.mp3',
-    note: 'the hole in the ceiling, and whatever is past it',
+    note: 'the hole in the ceiling',
   },
   {
     id: 'hide',
     title: 'Hide',
     artist: 'Dorian Concept · slowed',
     file: '/audio/hide.mp3',
-    note: 'for the nights I do not answer the door',
+    note: 'for the nights i do not answer',
   },
   {
     id: 'silence',
     title: 'Silence',
     artist: '',
     file: null,
-    note: 'always available, and cheaper to keep',
+    note: 'cheaper to keep',
   },
 ];
 
