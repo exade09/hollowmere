@@ -37,8 +37,15 @@ export type Provider = {
 };
 
 const TIMEOUT_MS = 60_000;
-const POST_TOKENS = 400;
-const CHAT_TOKENS = 320;
+/**
+ * Budgets, sized for a reasoning model rather than a plain one. On a model
+ * that thinks first, this number covers the thinking as well as the words, and
+ * a tight budget produces an empty reply instead of a short one. The audit
+ * caps a reply at 900 characters anyway, so the headroom costs nothing when it
+ * is not used.
+ */
+const POST_TOKENS = 1600;
+const CHAT_TOKENS = 1400;
 
 async function post(url: string, init: RequestInit): Promise<Response> {
   const ctl = new AbortController();
@@ -101,36 +108,71 @@ function openai(): Provider {
   const model = process.env.OPENAI_MODEL || 'gpt-5';
 
   const call = async (system: string, turns: Turn[], maxTokens: number): Promise<Generated> => {
-    const body = (limitKey: 'max_completion_tokens' | 'max_tokens') =>
-      JSON.stringify({
+    /**
+     * The request is built from a set of optional parameters that different
+     * models accept and reject, and any one of them is shed on the specific
+     * 400 that names it. Guessing capabilities from the model string is how
+     * this breaks every time a model is renamed.
+     *
+     * `reasoning_effort: 'low'` matters more than it looks. A reasoning model
+     * spends max_completion_tokens on thinking before it writes anything, and
+     * a short stylistic reply given a small budget comes back completely empty
+     * with finish_reason "length" — which is exactly what happened on the
+     * first live call. These replies need voice, not deliberation.
+     */
+    const optional = new Set(['limit_new', 'reasoning_effort']);
+
+    const build = () => {
+      const body: Record<string, unknown> = {
         model,
-        [limitKey]: maxTokens,
         messages: [{ role: 'system', content: system }, ...turns],
-      });
-    const send = (limitKey: 'max_completion_tokens' | 'max_tokens') =>
-      post('https://api.openai.com/v1/chat/completions', {
+      };
+      body[optional.has('limit_new') ? 'max_completion_tokens' : 'max_tokens'] = maxTokens;
+      if (optional.has('reasoning_effort')) body.reasoning_effort = 'low';
+      return JSON.stringify(body);
+    };
+
+    let last = '';
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const r = await post('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-        body: body(limitKey),
+        body: build(),
       });
 
-    // Newer models take max_completion_tokens and reject max_tokens; older
-    // ones do the reverse. Try the current name, fall back once on the
-    // specific complaint rather than guessing from the model string.
-    let r = await send('max_completion_tokens');
-    if (r.status === 400) {
-      const detail = await r.text();
-      if (/max_completion_tokens|unsupported parameter/i.test(detail)) {
-        r = await send('max_tokens');
-      } else {
-        throw new Error(`openai 400: ${detail.slice(0, 300)}`);
+      if (r.status === 400) {
+        last = (await r.text()).slice(0, 400);
+        if (/reasoning_effort/i.test(last) && optional.has('reasoning_effort')) {
+          optional.delete('reasoning_effort');
+          continue;
+        }
+        if (/max_completion_tokens/i.test(last) && optional.has('limit_new')) {
+          optional.delete('limit_new');
+          continue;
+        }
+        throw new Error(`openai 400: ${last}`);
       }
+      if (!r.ok) throw new Error(`openai ${r.status}: ${(await r.text()).slice(0, 300)}`);
+
+      const j = (await r.json()) as {
+        choices?: { message?: { content?: string }; finish_reason?: string }[];
+        usage?: { completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
+      };
+      const choice = j.choices?.[0];
+      const text = (choice?.message?.content || '').trim();
+      if (text) return { text, provider: 'openai', model };
+
+      // Empty with finish_reason "length" is the budget being eaten before a
+      // word is written. Say so, rather than reporting "no text" and leaving
+      // the next person to guess.
+      const reasoned = j.usage?.completion_tokens_details?.reasoning_tokens;
+      throw new Error(
+        `openai returned no text (finish_reason=${choice?.finish_reason ?? '?'}` +
+          (reasoned ? `, reasoning_tokens=${reasoned}` : '') +
+          `, budget=${maxTokens}). Raise the budget or lower reasoning_effort.`,
+      );
     }
-    if (!r.ok) throw new Error(`openai ${r.status}: ${(await r.text()).slice(0, 300)}`);
-    const j = (await r.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = (j.choices?.[0]?.message?.content || '').trim();
-    if (!text) throw new Error('openai returned no text');
-    return { text, provider: 'openai', model };
+    throw new Error(`openai: gave up after shedding parameters. last error: ${last}`);
   };
 
   return {
