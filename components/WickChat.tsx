@@ -21,11 +21,18 @@ type Turn = { role: 'user' | 'assistant'; content: string };
 const KEY = 'hollowmere.wick.chat';
 const KEEP = 8;
 const MAX = 600;
+const ADDRESS = /0x[0-9a-fA-F]{40}/;
 
 export default function WickChat() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  /**
+   * What he is doing while the visitor waits. Reading the chain takes an rpc
+   * round trip on top of the model call, so it is worth saying which of the two
+   * is happening rather than showing the same three dots for both.
+   */
+  const [doing, setDoing] = useState<'thinking' | 'reading'>('thinking');
   const [note, setNote] = useState('');
   const tail = useRef<HTMLDivElement | null>(null);
 
@@ -52,11 +59,16 @@ export default function WickChat() {
     else settled.current = true;
   }, [turns]);
 
+  useEffect(() => {
+    if (busy) tail.current?.scrollIntoView({ block: 'nearest' });
+  }, [busy]);
+
   const send = async () => {
     const message = draft.trim().slice(0, MAX);
     if (!message || busy) return;
     setDraft('');
     setNote('');
+    setDoing(ADDRESS.test(message) ? 'reading' : 'thinking');
     setBusy(true);
     const history = turns.slice(-6);
     setTurns((t) => [...t, { role: 'user', content: message }]);
@@ -88,13 +100,23 @@ export default function WickChat() {
     <div className="wick-chat">
       <div className="label-sm">speak into it</div>
 
-      {turns.length > 0 && (
+      {(turns.length > 0 || busy) && (
         <div className="wick-log">
           {turns.slice(-KEEP).map((t, i) => (
             <p key={i} className={t.role === 'user' ? 'said' : 'wick'}>
               {t.content}
             </p>
           ))}
+          {busy && (
+            <p className="wick thinking" aria-live="polite">
+              <span className="facets" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              {doing === 'reading' ? 'reading the stone' : 'thinking'}
+            </p>
+          )}
           <div ref={tail} />
         </div>
       )}

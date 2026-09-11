@@ -19,6 +19,13 @@
  */
 import { sanitize } from './sanitize';
 
+/**
+ * keccak256("eip1967.proxy.implementation") - 1, the slot the standard puts an
+ * implementation address in. A documented constant, not a derived one.
+ */
+const EIP1967_IMPL =
+  '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
+
 const SEL = {
   name: '0x06fdde03',
   symbol: '0x95d89b41',
@@ -51,12 +58,35 @@ export type TokenReport = {
    */
   owner?: string;
   ownerRenounced?: boolean;
+  /** Size of the deployed bytecode in bytes. A bare ERC-20 is about 2 kB. */
+  codeBytes?: number;
+  /**
+   * The address in the standard EIP-1967 implementation slot, when that slot
+   * holds one. Present means the code behind this address can be replaced.
+   *
+   * Absent means only that nothing was found there — never that the contract is
+   * not a proxy. A silent negative is the honest failure mode here: claiming
+   * "not upgradeable" about somebody else's contract on the strength of one
+   * storage slot would be a statement this cannot support.
+   */
+  proxyImplementation?: string;
+  /** The owner's own balance as a percentage of supply, when there is an owner. */
+  ownerSharePct?: number;
   /** Movement in the recent window. */
   window?: {
     blocks: number;
     transfers: number;
     senders: number;
     receivers: number;
+    /** Transfers out of the zero address: tokens created inside the window. */
+    mints?: number;
+    /** Transfers into the zero address: tokens destroyed inside the window. */
+    burns?: number;
+    /** The largest single transfer in the window, in whole tokens. */
+    largestTransfer?: number;
+    /** First and last block in the window that carried a transfer. */
+    firstBlock?: number;
+    lastBlock?: number;
     /**
      * Largest balance among addresses active in this window, as a percentage
      * of supply. NOT the largest holder overall — only the largest of those
@@ -240,9 +270,10 @@ export async function readToken(
         ethCall(addr, SEL.totalSupply),
         ethCall(addr, SEL.owner),
         { method: 'eth_blockNumber', params: [] },
+        { method: 'eth_getStorageAt', params: [addr, EIP1967_IMPL, 'latest'] },
       ],
     );
-    const [codeA, nameA, symbolA, decA, supplyA, ownerA, headA] = answers;
+    const [codeA, nameA, symbolA, decA, supplyA, ownerA, headA, proxyA] = answers;
 
     // A node that refused the request has told us nothing about the address.
     // Saying otherwise would be inventing a fact, and this one would be a
@@ -275,6 +306,17 @@ export async function readToken(
     // difference is reported rather than flattened: see tokenFacts.
     const ownerAddr = ownerA.ok ? addressFromWord(ownerA.value) : undefined;
 
+    // Bytecode size, as a plain fact. A bare ERC-20 compiles to roughly 2 kB;
+    // fee logic, limits and allow lists all make it bigger. Reported as a
+    // number, never as a judgement about what the extra code does.
+    const codeBytes = Math.max(0, Math.floor((code.length - 2) / 2));
+
+    // The standard proxy slot. Reported only when it holds something, because
+    // an empty slot is not evidence that a contract cannot be upgraded.
+    const proxyWord = proxyA.ok ? addressFromWord(proxyA.value) : undefined;
+    const proxyImplementation =
+      proxyWord && proxyWord !== ZERO ? proxyWord : undefined;
+
     const report: TokenReport = {
       ok: true,
       address: addr,
@@ -284,6 +326,8 @@ export async function readToken(
       supply: supplyRaw === undefined ? undefined : scale(supplyRaw, decimals),
       owner: ownerAddr,
       ownerRenounced: ownerAddr === undefined ? undefined : ownerAddr === ZERO,
+      codeBytes,
+      proxyImplementation,
     };
 
     // Movement, and concentration among whoever moved.
@@ -303,16 +347,36 @@ export async function readToken(
           ],
         },
       ]);
+      type TransferLog = { topics?: string[]; data?: string; blockNumber?: string };
       const logs =
-        logsA.ok && Array.isArray(logsA.value) ? (logsA.value as { topics?: string[] }[]) : [];
+        logsA.ok && Array.isArray(logsA.value) ? (logsA.value as TransferLog[]) : [];
 
       const senders = new Set<string>();
       const receivers = new Set<string>();
+      let mints = 0;
+      let burns = 0;
+      let largestRaw = BigInt(0);
+      let firstBlock: number | undefined;
+      let lastBlock: number | undefined;
+
       for (const l of logs) {
         const t = l.topics || [];
-        if (t.length >= 3) {
-          senders.add(addressFromTopic(t[1]));
-          receivers.add(addressFromTopic(t[2]));
+        if (t.length < 3) continue;
+        const fromAddr = addressFromTopic(t[1]);
+        const toAddr = addressFromTopic(t[2]);
+        senders.add(fromAddr);
+        receivers.add(toAddr);
+        // A transfer out of the zero address is a mint and a transfer into it
+        // is a burn. Both come straight out of the topics, so neither needs a
+        // function selector guessed at.
+        if (fromAddr === ZERO) mints += 1;
+        if (toAddr === ZERO) burns += 1;
+        const v = hexToBigInt(l.data);
+        if (v !== undefined && v > largestRaw) largestRaw = v;
+        const b = Number(hexToBigInt(l.blockNumber) ?? BigInt(0));
+        if (b > 0) {
+          if (firstBlock === undefined || b < firstBlock) firstBlock = b;
+          if (lastBlock === undefined || b > lastBlock) lastBlock = b;
         }
       }
 
@@ -321,6 +385,11 @@ export async function readToken(
         transfers: logs.length,
         senders: senders.size,
         receivers: receivers.size,
+        mints: mints || undefined,
+        burns: burns || undefined,
+        largestTransfer: largestRaw > BigInt(0) ? scale(largestRaw, decimals) : undefined,
+        firstBlock,
+        lastBlock,
       };
 
       // Balances of the active addresses, batched. Capped: this is a flavour of
@@ -342,6 +411,18 @@ export async function readToken(
         window.activeAddressesChecked = active.length;
         window.topActiveSharePct =
           Math.round(Number((top * BigInt(10_000)) / supplyRaw) / 100 * 100) / 100;
+      }
+
+      // What the owner holds of its own supply. One more call, and the single
+      // most telling figure available without an indexer.
+      if (ownerAddr && ownerAddr !== ZERO && supplyRaw && supplyRaw > BigInt(0)) {
+        const [ownerBal] = await rpcBatch(rpcUrl, [
+          ethCall(addr, SEL.balanceOf + padAddress(ownerAddr)),
+        ]);
+        const v = ownerBal.ok ? hexToBigInt(ownerBal.value) : undefined;
+        if (v !== undefined) {
+          report.ownerSharePct = Math.round(Number((v * BigInt(10_000)) / supplyRaw)) / 100;
+        }
       }
 
       report.window = window;
@@ -368,11 +449,31 @@ export function tokenFacts(t: TokenReport): string[] {
   if (t.ownerRenounced === true) out.push('ownership is renounced (owner is the zero address)');
   if (t.ownerRenounced === false) out.push(`ownership is still held by ${t.owner}`);
   if (t.owner === undefined) out.push('the contract exposes no owner function, which is not the same as renounced');
+  if (typeof t.ownerSharePct === 'number') {
+    out.push(`the owner address holds ${t.ownerSharePct}% of supply`);
+  }
+  if (typeof t.codeBytes === 'number') {
+    out.push(`deployed bytecode: ${t.codeBytes} bytes (a plain ERC-20 is around 2000)`);
+  }
+  if (t.proxyImplementation) {
+    out.push(
+      `the standard proxy slot holds ${t.proxyImplementation}, so the code behind ` +
+        `this address can be replaced`,
+    );
+  }
   const w = t.window;
   if (w) {
     out.push(`transfers in the last ${w.blocks} blocks: ${w.transfers}`);
     out.push(`distinct addresses receiving in that window: ${w.receivers}`);
     out.push(`distinct addresses sending in that window: ${w.senders}`);
+    if (typeof w.mints === 'number') out.push(`tokens created inside that window: ${w.mints} mints`);
+    if (typeof w.burns === 'number') out.push(`tokens destroyed inside that window: ${w.burns} burns`);
+    if (typeof w.largestTransfer === 'number') {
+      out.push(`largest single transfer in that window: ${w.largestTransfer.toLocaleString('en-GB')}`);
+    }
+    if (typeof w.firstBlock === 'number' && typeof w.lastBlock === 'number') {
+      out.push(`transfers span blocks ${w.firstBlock} to ${w.lastBlock}`);
+    }
     if (typeof w.topActiveSharePct === 'number') {
       out.push(
         `largest balance among the ${w.activeAddressesChecked} addresses active in that window: ` +

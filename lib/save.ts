@@ -40,7 +40,12 @@ const DEFAULTS: Save = {
   vigilCount: 0,
   hasKey: false,
   stirred: 0,
-  audio: { track: 'harvest-dawn', vol: 0.45, muted: true },
+  // Sound is on by default and the first track is Harvest Dawn. The click on
+  // the boot overlay is the user gesture browsers demand, so the room has
+  // music from the moment it opens rather than after a second deliberate act.
+  // Anyone who turns it off is remembered: this default only applies to a save
+  // that has never been written.
+  audio: { track: 'harvest-dawn', vol: 0.45, muted: false },
 };
 
 function dayOf(ts: number) {

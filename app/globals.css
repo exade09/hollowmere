@@ -778,3 +778,34 @@ a:hover { border-bottom-color: var(--spectre); }
   margin: 10px 0 0;
 }
 .wick-small { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+
+/* He is thinking. Three facets catching light in turn rather than three dots:
+   the same vocabulary as the tally marks and the rite boxes. */
+.wick-log .thinking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.facets { display: inline-flex; gap: 5px; }
+.facets i {
+  width: 6px;
+  height: 6px;
+  background: var(--spectre);
+  transform: rotate(45deg);
+  opacity: .25;
+  animation: facet-turn 1.25s ease-in-out infinite;
+}
+.facets i:nth-child(2) { animation-delay: .18s; }
+.facets i:nth-child(3) { animation-delay: .36s; }
+@keyframes facet-turn {
+  0%, 70%, 100% { opacity: .22; }
+  35% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .facets i { animation: none; opacity: .6; }
+}
