@@ -125,9 +125,27 @@ function credentialsHandledSafely(text: string): boolean {
 /** The line he gives instead, when a reply has to be withheld. */
 export const DEFLECTION = 'i read the stone.\n\ni do not read the future.\n\nask me what it says instead.';
 
-export function auditReply(text: string): { ok: boolean; why?: string } {
+/**
+ * A reply may quote an address only if it was handed one. Left unchecked, the
+ * obvious question — "what is the contract address for this" — invites the
+ * model to produce a plausible forty characters of hex, and an almost-right
+ * address in a room people copy from is worse than no answer at all. The same
+ * reasoning as the figure check in auditPost, applied to the thing that costs
+ * more when it is wrong.
+ */
+export function auditReply(
+  text: string,
+  allowedAddresses: string[] = [],
+): { ok: boolean; why?: string } {
   for (const [re, why] of FORBIDDEN) {
     if (re.test(text)) return { ok: false, why };
+  }
+
+  const allowed = new Set(allowedAddresses.map((a) => a.toLowerCase()));
+  for (const found of text.match(/0x[a-fA-F0-9]{16,}/g) || []) {
+    if (!allowed.has(found.toLowerCase())) {
+      return { ok: false, why: `quotes an address it was not given: ${found.slice(0, 12)}…` };
+    }
   }
   if (!credentialsHandledSafely(text)) {
     return { ok: false, why: 'raises credentials without a negation in the same sentence' };

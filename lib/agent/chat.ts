@@ -94,7 +94,12 @@ export async function reply(
     { role: 'user', content: buildChatTurn(input) },
   ];
   const out = await provider.chat(WICK_CHAT, turns);
-  const verdict = auditReply(out.text);
+  // The addresses he was actually shown: the one asked about, and the owner
+  // the chain reported for it. Anything else in the reply is invented.
+  const allowedAddresses = [input.token?.address, input.token?.owner].filter(
+    (a): a is string => typeof a === 'string',
+  );
+  const verdict = auditReply(out.text, allowedAddresses);
   if (!verdict.ok) return { text: DEFLECTION, withheld: verdict.why };
   return { text: out.text };
 }
