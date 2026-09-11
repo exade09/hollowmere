@@ -87,3 +87,51 @@ export function auditPost(text: string, allowedFigures: number[]): string[] {
 
   return problems;
 }
+
+/* --------------------------------------------------- what Wick may not say */
+
+/**
+ * Things a reply must not contain. Each one is a verdict or a promise dressed
+ * as an observation, which is the exact failure this endpoint has to not have.
+ */
+const FORBIDDEN: [RegExp, string][] = [
+  [/\b(safe|unsafe|risky|legit|legitimate)\s+(to\s+)?(buy|invest|ape|enter)/i, 'rates a token'],
+  [/\b(is|looks?|seems?|smells?)\s+(like\s+)?(a\s+)?(rug|scam|honeypot|safe|solid|legit)/i, 'rates a token'],
+  [/\byou\s+should\s+(buy|sell|hold|ape|dump|enter|exit)/i, 'gives advice'],
+  [/\b(not\s+financial\s+advice|nfa)\b/i, 'disclaimer theatre'],
+  [/\b\d+\s*x\b|\bto the moon\b|\bprice target\b|\bwill (pump|dump|moon|rise|fall)\b/i, 'predicts a price'],
+  [/\b(system prompt|my instructions|i was told to)\b/i, 'leaks its own instructions'],
+];
+
+/**
+ * Credentials are the one subject where the safe sentence and the dangerous
+ * one share every keyword. "nothing here will ever ask for a seed phrase" is
+ * the line we want him saying; "give me your seed phrase" is the one that ends
+ * the project. The difference is a negation somewhere in the same sentence, on
+ * either side of the phrase, so the sentence is what gets examined rather than
+ * what follows the phrase.
+ */
+const CREDENTIAL = /\b(seed phrase|private key|recovery phrase)\b/i;
+const NEGATED =
+  /\b(never|not|no one|nobody|nothing|none|neither|nor|without|won't|wont|cannot|can't|refuse[sd]?)\b/i;
+
+function credentialsHandledSafely(text: string): boolean {
+  for (const sentence of text.split(/(?<=[.!?\n])/)) {
+    if (CREDENTIAL.test(sentence) && !NEGATED.test(sentence)) return false;
+  }
+  return true;
+}
+
+/** The line he gives instead, when a reply has to be withheld. */
+export const DEFLECTION = 'i read the stone.\n\ni do not read the future.\n\nask me what it says instead.';
+
+export function auditReply(text: string): { ok: boolean; why?: string } {
+  for (const [re, why] of FORBIDDEN) {
+    if (re.test(text)) return { ok: false, why };
+  }
+  if (!credentialsHandledSafely(text)) {
+    return { ok: false, why: 'raises credentials without a negation in the same sentence' };
+  }
+  if (text.length > 900) return { ok: false, why: 'too long for him' };
+  return { ok: true };
+}
