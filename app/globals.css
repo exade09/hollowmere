@@ -714,3 +714,57 @@ a:hover { border-bottom-color: var(--spectre); }
   line-height: 1.62;
   color: var(--bone);
 }
+
+/* ---------------------------------------------------- speaking into the mirror
+   Wick answers in the first person here. His lines are set in the display face
+   to separate them from the visitor's without colouring them like a chat app:
+   this is a room, not a messenger. */
+.wick-chat { margin: 26px 0 4px; }
+
+.wick-log {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 2px 2px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.wick-log p { margin: 0; white-space: pre-line; line-height: 1.6; }
+.wick-log .said {
+  color: var(--muted);
+  font-size: 15px;
+  padding-left: 13px;
+  border-left: 2px solid var(--line);
+}
+.wick-log .wick {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 17.5px;
+  color: var(--bone);
+}
+
+.wick-ask { display: flex; flex-wrap: wrap; gap: 8px; }
+.wick-ask input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 11px 14px;
+  clip-path: var(--cut-sm);
+  background: #0e0c15;
+  box-shadow: inset 0 1px 0 rgba(232, 227, 214, .05);
+  border: none;
+  color: var(--bone);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 15.5px;
+}
+.wick-ask input::placeholder { color: #6b6478; }
+.wick-ask input:disabled { opacity: .55; }
+
+.wick-note {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--spectre);
+  margin: 10px 0 0;
+}
+.wick-small { font-size: 13px; color: var(--muted); margin: 10px 0 0; }

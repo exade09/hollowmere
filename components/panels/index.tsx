@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Panel from '@/components/Panel';
+import WickChat from '@/components/WickChat';
 import {
   ARCHIVE, BRAND, HOARD_NOTE, HOLD, LOCK_GLYPHS, LOCK_ORDER, NOTES, RITES, SOCIALS,
   SPHERES, TALLY_NOTES, WICK,
@@ -420,6 +421,7 @@ function Mirror({ save }: { save: Save }) {
           ))}
         </dl>
       </div>
+      <WickChat />
       <div className="share-preview">
         <canvas ref={canvas} aria-label="progress card" />
       </div>
