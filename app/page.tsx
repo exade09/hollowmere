@@ -71,6 +71,7 @@ export default function Home() {
           onSigil={() => setPanel('sigil')}
           onSpeak={() => setPanel('wick')}
           onLedger={() => setPanel('ledger')}
+          onGames={() => setPanel('games')}
           refresh={refresh}
         />
       )}
@@ -82,6 +83,7 @@ export default function Home() {
           refresh={refresh}
           onClose={() => { setPanel(null); setLockedZone(null); refresh(); }}
           onTravel={travel}
+          onPanel={(next) => setPanel(next)}
         />
       )}
 

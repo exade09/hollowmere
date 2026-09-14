@@ -1389,3 +1389,147 @@ a:hover { border-bottom-color: var(--spectre); }
   line-height: 1.55;
   color: var(--stone);
 }
+
+/* ------------------------------------------------------------- the library
+   Two shelves behind one plate. The tabs are the bar's own buttons so the
+   interface does not grow a second kind of tab, and the selected one takes the
+   teal the rest of the world uses for "this is live". */
+.shelves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+.shelves .chrome-btn.on {
+  color: var(--ground);
+  background: var(--spectre);
+}
+.shelves .chrome-btn.on .dim { color: rgba(11, 10, 16, .62); }
+
+/* Wallpapers. The tiles are chamfered like everything else and the grid keeps
+   each one's real aspect ratio, so nothing reflows as the images arrive. */
+.papers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding: 2px 2px 4px;
+}
+.paper {
+  position: relative;
+  margin: 0;
+  clip-path: var(--cut-sm);
+  background: #0e0c15;
+  box-shadow: var(--bevel);
+  overflow: hidden;
+}
+.paper a { border-bottom: none; display: block; }
+.paper img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  transition: transform .28s ease, opacity .28s ease;
+  opacity: .88;
+}
+.paper:hover img { transform: scale(1.03); opacity: 1; }
+
+/* The save link sits out of the way until the tile is under the pointer, and
+   stays permanently visible on touch, where there is no hover to reveal it. */
+.paper-save {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 5px 9px;
+  clip-path: var(--cut-sm);
+  background: rgba(11, 10, 16, .86);
+  color: var(--spectre);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity .16s ease;
+}
+.paper:hover .paper-save,
+.paper:focus-within .paper-save { opacity: 1; }
+@media (hover: none) {
+  .paper-save { opacity: 1; }
+}
+
+/* ----------------------------------------------------------------- the marks
+   Concentration, played with the eight runes off the lock. The cards are the
+   same chamfered plates as everything else; a face-down card carries the facet
+   the whole interface uses as its bullet, and a found pair stops being
+   interactive and goes quiet rather than disappearing, so the board a player
+   has learned stays on screen. */
+.pairs-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  /* Capped and centred so the whole board is on screen at once: a memory game
+     you have to scroll is a memory game about scrolling. An explicit width
+     rather than a max-width, because this is a grid item and `margin: auto`
+     on one of those centres it at its content size instead of stretching it —
+     which collapsed the board to a sixth of its size. Same pattern as the
+     slab above, for the same reason. */
+  width: min(380px, 100%);
+  margin: 14px auto 4px;
+}
+
+.pair-card {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  clip-path: var(--cut-sm);
+  background: #1b1825;
+  box-shadow: var(--bevel);
+  font-size: clamp(20px, 6vw, 30px);
+  line-height: 1;
+  color: transparent;
+  transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+.pair-card:hover:not(:disabled) { background: #241f2f; }
+
+/* Face down: one facet, centred, the same mark as a bullet. */
+.pair-card::after {
+  content: '';
+  width: 9px;
+  height: 9px;
+  background: var(--stone);
+  transform: rotate(45deg);
+  transition: opacity .18s ease;
+}
+.pair-card.up::after,
+.pair-card.found::after { opacity: 0; }
+
+.pair-card > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.pair-card.up {
+  background: #2a2438;
+  color: var(--spectre);
+}
+.pair-card.found {
+  background: #14121b;
+  color: var(--ember);
+  box-shadow: none;
+}
+.pair-card:disabled { cursor: default; }
+
+/* A note set beside the lock rather than under it, so the chest does not read
+   as two panels stacked. */
+.chest-aside {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0 0 12px;
+  padding-left: 13px;
+  border-left: 2px solid var(--line);
+}

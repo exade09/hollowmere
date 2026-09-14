@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Panel from '@/components/Panel';
 import Dispatches from '@/components/Dispatches';
 import KeepTheFire from '@/components/games/KeepTheFire';
+import Pairs from '@/components/games/Pairs';
 import Slab from '@/components/games/Slab';
 import WalletRead from '@/components/WalletRead';
 import WickChat from '@/components/WickChat';
@@ -13,15 +14,18 @@ import {
   SPHERES, TALLY_NOTES, WICK,
 } from '@/lib/content';
 import {
-  CANDLE_HOURS, NIGHTS_FOR_KEY, Save, candleState, markBlock, patch, read,
+  CANDLE_HOURS, NIGHTS_FOR_KEY, Save, candleState, markBlock, patch, read, todayKey,
 } from '@/lib/save';
 import { PanelId, SceneId } from '@/lib/scenes';
+import { WALLPAPERS } from '@/lib/wallpapers';
 import { useAddress } from '@/lib/useAddress';
 
 type HostProps = {
   id: PanelId;
   onClose: () => void;
   onTravel: (to: SceneId) => void;
+  /** Opens another panel in place of this one, for the few that link. */
+  onPanel: (id: PanelId) => void;
   save: Save;
   refresh: () => void;
 };
@@ -126,7 +130,15 @@ function Raven({ save }: { save: Save }) {
 const GLYPHS = LOCK_GLYPHS;
 const TARGET = LOCK_ORDER;
 
-function Chest({ save, refresh }: { save: Save; refresh: () => void }) {
+function Chest({
+  save,
+  refresh,
+  onPanel,
+}: {
+  save: Save;
+  refresh: () => void;
+  onPanel: (id: PanelId) => void;
+}) {
   const solved = save.lockSolvedAt !== null;
   const [rings, setRings] = useState<number[]>([1, 6, 3]);
   const [tries, setTries] = useState(0);
@@ -181,77 +193,146 @@ function Chest({ save, refresh }: { save: Save; refresh: () => void }) {
       {tries >= 6 && (
         <p className="dim">the same marks are cut into the cage wall. top to bottom</p>
       )}
+
+      {/* The marks on the lock are the cards in one of the pastimes, so the
+          chest is the other honest way into them. The line above the button is
+          the one to change when there is something else to say here. */}
+      <div className="label-sm">while you are thinking</div>
+      <p className="chest-aside">
+        the same eight marks are dealt out as a game downstairs. learning them there is not
+        cheating, it is just slower than being told.
+      </p>
+      <div className="actions">
+        <button className="btn" onClick={() => onPanel('games')}>
+          the pastimes
+        </button>
+      </div>
     </>
   );
 }
 
 /* ----------------------------------------------------- the shelf: archive */
+
+/**
+ * The library, in two shelves.
+ *
+ * The volumes were here first. The wallpapers are the other thing people
+ * actually come to a library for, and they are the same kind of object — take
+ * it or do not — so they are a shelf rather than a room of their own.
+ *
+ * The list of them is generated from the folder by scripts/wallpaper-manifest,
+ * so adding one is a file copy and this file never learns about it.
+ */
 function Books() {
+  const [shelf, setShelf] = useState<'volumes' | 'wallpapers'>('volumes');
   const tag = { ready: 'take it', soon: 'not copied', lost: 'lost' };
+
   return (
     <>
-      <p className="lead">what was saved from the library. some of it was not.</p>
-      <div className="grid">
-        {ARCHIVE.map((a) => (
-          <div
-            className={`card ${a.state === 'ready' ? 'open' : ''} ${a.state === 'lost' ? 'lost' : ''}`}
-            key={a.name}
-          >
-            <b>{a.name}</b>
-            <small>{a.note}</small>
-            <span className="tag">
-              {a.state === 'ready' && a.href
-                ? <a href={a.href} download>{tag.ready}</a>
-                : tag[a.state]}
-            </span>
+      <div className="shelves" role="tablist" aria-label="the library">
+        <button
+          role="tab"
+          aria-selected={shelf === 'volumes'}
+          className={`chrome-btn ${shelf === 'volumes' ? 'on' : ''}`}
+          onClick={() => setShelf('volumes')}
+        >
+          the shelf
+        </button>
+        <button
+          role="tab"
+          aria-selected={shelf === 'wallpapers'}
+          className={`chrome-btn ${shelf === 'wallpapers' ? 'on' : ''}`}
+          onClick={() => setShelf('wallpapers')}
+        >
+          wallpapers <span className="dim">{WALLPAPERS.length}</span>
+        </button>
+      </div>
+
+      {shelf === 'volumes' && (
+        <>
+          <p className="lead">what was saved from the library. some of it was not.</p>
+          <div className="grid">
+            {ARCHIVE.map((a) => (
+              <div
+                className={`card ${a.state === 'ready' ? 'open' : ''} ${a.state === 'lost' ? 'lost' : ''}`}
+                key={a.name}
+              >
+                <b>{a.name}</b>
+                <small>{a.note}</small>
+                <span className="tag">
+                  {a.state === 'ready' && a.href ? (
+                    // A file is taken; a page is opened. The manual is a page,
+                    // and a download attribute on it saves the markup instead
+                    // of reading it, which is worse than no link at all.
+                    a.href.startsWith('/docs') ? (
+                      <a href={a.href}>read it</a>
+                    ) : (
+                      <a href={a.href} download>
+                        {tag.ready}
+                      </a>
+                    )
+                  ) : (
+                    tag[a.state]
+                  )}
+                </span>
+              </div>
+            ))}
           </div>
+        </>
+      )}
+
+      {shelf === 'wallpapers' && <Wallpapers />}
+    </>
+  );
+}
+
+/** The wallpapers shelf: a click opens one whole, the corner saves it. */
+function Wallpapers() {
+  if (!WALLPAPERS.length) {
+    return <p className="lead">nothing pinned up yet.</p>;
+  }
+  return (
+    <>
+      <div className="label-sm">wallpapers — click to open one, save whichever</div>
+      <div className="papers">
+        {WALLPAPERS.map((w) => (
+          <figure className="paper" key={w.id}>
+            <a href={w.full} target="_blank" rel="noreferrer" aria-label={`open ${w.id}`}>
+              {/* The ratio is reserved from the real dimensions so the grid
+                  does not reflow as the images arrive. */}
+              <img
+                src={w.thumb}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                style={{ aspectRatio: `${w.w} / ${w.h}` }}
+              />
+            </a>
+            <a className="paper-save" href={w.full} download={`hollowmere-${w.id}.jpg`}>
+              save
+            </a>
+          </figure>
         ))}
       </div>
+      <p className="wick-small">
+        they are all this place, rendered at rest. take the ones you want. i am not counting
+        these.
+      </p>
     </>
   );
 }
 
 /* --------------------------------------------------------- the map: the hold */
 
-/**
- * The map holds two things: the places, and the pastimes.
- *
- * The pastimes are here rather than in a menu of their own because the map is
- * where a person goes to see what there is to do. Both are real games with a
- * local best; the third slot is shut, which is the same thing six of the nine
- * places say and is true rather than coy.
- */
-type Pastime = 'fire' | 'slab';
-
-const PASTIMES: { id: Pastime | null; name: string; note: string; icon: string }[] = [
-  { id: 'fire', name: 'keep the fire', note: 'they go out. put them back', icon: 'altar' },
-  { id: 'slab', name: 'the slab', note: 'one a day, the same for everyone', icon: 'map' },
-  { id: null, name: 'the long dark', note: '', icon: 'gate' },
-];
-
 function Hold({
   onTravel,
+  onPanel,
   save,
-  refresh,
 }: {
   onTravel: (to: SceneId) => void;
+  onPanel: (id: PanelId) => void;
   save: Save;
-  refresh: () => void;
 }) {
-  const [playing, setPlaying] = useState<Pastime | null>(null);
-
-  if (playing) {
-    return (
-      <>
-        <button className="back" onClick={() => setPlaying(null)}>
-          ‹ back to the map
-        </button>
-        {playing === 'fire' && <KeepTheFire save={save} refresh={refresh} />}
-        {playing === 'slab' && <Slab save={save} refresh={refresh} />}
-      </>
-    );
-  }
-
   return (
     <>
       <p className="lead">all of it. most of it is shut.</p>
@@ -286,32 +367,103 @@ function Hold({
 
       <div className="label-sm">pastimes</div>
       <div className="grid">
+        {/* The games used to live inside this panel. They are their own room
+            now, reached from the bar as well, because a person looking for
+            something to do should not have to find the map first. */}
+        <div
+          className="card open travel"
+          onClick={() => onPanel('games')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') onPanel('games');
+          }}
+        >
+          <img className="card-icon" src="/ui/icons/altar.png" alt="" aria-hidden="true" />
+          <b>the pastimes</b>
+          <small>three of them. the fire, the slab, the marks</small>
+          <span className="tag">
+            {save.games.fireBest > 0 ? `best watch ${save.games.fireBest}` : 'play'}
+          </span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------ the pastimes: minigames */
+
+/**
+ * Three small games, in a room of their own.
+ *
+ * They were in the map, which is where somebody goes to see the places rather
+ * than to play something, so half the people who would have played them never
+ * found them. Now the bar has a way in and so does the chest.
+ *
+ * All three are classics and none of them is a stock classic: the watch is
+ * whack-a-mole played on the sconces that are already in the room, the slab is
+ * a sliding puzzle cut out of our own render of the Sanctum, and the marks are
+ * concentration played with the eight runes the chest is locked with. Every
+ * score is local, because there is nowhere to send one and pretending
+ * otherwise would be a promise.
+ */
+type Pastime = 'fire' | 'slab' | 'pairs';
+
+const PASTIMES: { id: Pastime; name: string; note: string; icon: string }[] = [
+  { id: 'fire', name: 'keep the fire', note: 'they go out. put them back', icon: 'altar' },
+  { id: 'slab', name: 'the slab', note: 'one a day, the same for everyone', icon: 'map' },
+  { id: 'pairs', name: 'the marks', note: 'eight of them, twice. remember where', icon: 'chest' },
+];
+
+function Games({ save, refresh }: { save: Save; refresh: () => void }) {
+  const [playing, setPlaying] = useState<Pastime | null>(null);
+
+  if (playing) {
+    return (
+      <>
+        <button className="back" onClick={() => setPlaying(null)}>
+          ‹ back to the pastimes
+        </button>
+        {playing === 'fire' && <KeepTheFire save={save} refresh={refresh} />}
+        {playing === 'slab' && <Slab save={save} refresh={refresh} />}
+        {playing === 'pairs' && <Pairs save={save} refresh={refresh} />}
+      </>
+    );
+  }
+
+  const score = (id: Pastime) => {
+    if (id === 'fire') return save.games.fireBest > 0 ? `best ${save.games.fireBest}` : 'play';
+    if (id === 'pairs') return save.games.pairsBest > 0 ? `best ${save.games.pairsBest}` : 'play';
+    const today = save.games.slabBest[todayKey()];
+    return today !== undefined ? `today ${today}` : 'play';
+  };
+
+  return (
+    <>
+      <p className="lead">small things, for the nights nothing is happening.</p>
+      <div className="grid">
         {PASTIMES.map((g) => (
           <div
-            className={`card ${g.id ? 'open travel' : ''}`}
-            key={g.name}
-            onClick={() => g.id && setPlaying(g.id)}
-            role={g.id ? 'button' : undefined}
-            tabIndex={g.id ? 0 : undefined}
+            className="card open travel"
+            key={g.id}
+            onClick={() => setPlaying(g.id)}
+            role="button"
+            tabIndex={0}
             onKeyDown={(e) => {
-              if (g.id && (e.key === 'Enter' || e.key === ' ')) setPlaying(g.id);
+              if (e.key === 'Enter' || e.key === ' ') setPlaying(g.id);
             }}
           >
             <img className="card-icon" src={`/ui/icons/${g.icon}.png`} alt="" aria-hidden="true" />
             <b>{g.name}</b>
-            {g.note && <small>{g.note}</small>}
-            <span className="tag">
-              {g.id === 'fire'
-                ? save.games.fireBest > 0
-                  ? `best ${save.games.fireBest}`
-                  : 'play'
-                : g.id === 'slab'
-                  ? 'play'
-                  : 'shut'}
-            </span>
+            <small>{g.note}</small>
+            <span className="tag">{score(g.id)}</span>
           </div>
         ))}
       </div>
+      <p className="wick-small">
+        every score stays in this browser. there is nowhere here to send one, and a
+        leaderboard would be a promise i have not made.
+      </p>
     </>
   );
 }
@@ -664,18 +816,26 @@ const META: Record<PanelId, { kicker: string; title: string; icon?: string }> = 
   gate: { kicker: 'the gate', title: 'THE SEALED GATE', icon: 'gate' },
   wick: { kicker: 'the keeper', title: 'SPEAK TO WICK', icon: undefined },
   ledger: { kicker: 'the ledger', title: 'WHAT YOU HOLD', icon: undefined },
+  games: { kicker: 'the pastimes', title: 'MINIGAMES', icon: 'altar' },
 };
 
-export default function PanelHost({ id, onClose, onTravel, save, refresh }: HostProps) {
+export default function PanelHost({
+  id,
+  onClose,
+  onTravel,
+  onPanel,
+  save,
+  refresh,
+}: HostProps) {
   useEffect(() => { markBlock(id); }, [id]);
   const meta = META[id];
   return (
     <Panel kicker={meta.kicker} title={meta.title} icon={meta.icon} onClose={onClose}>
       {id === 'sigil' && <Sigil save={save} refresh={refresh} />}
       {id === 'raven' && <Raven save={save} />}
-      {id === 'chest' && <Chest save={save} refresh={refresh} />}
+      {id === 'chest' && <Chest save={save} refresh={refresh} onPanel={onPanel} />}
       {id === 'books' && <Books />}
-      {id === 'map' && <Hold onTravel={onTravel} save={save} refresh={refresh} />}
+      {id === 'map' && <Hold onTravel={onTravel} onPanel={onPanel} save={save} />}
       {id === 'astro' && <Spheres save={save} refresh={refresh} />}
       {id === 'mirror' && <Mirror save={save} />}
       {id === 'cage' && <Cage save={save} />}
@@ -683,6 +843,7 @@ export default function PanelHost({ id, onClose, onTravel, save, refresh }: Host
       {id === 'gate' && <Gate save={save} refresh={refresh} />}
       {id === 'wick' && <Speak />}
       {id === 'ledger' && <Ledger />}
+      {id === 'games' && <Games save={save} refresh={refresh} />}
     </Panel>
   );
 }

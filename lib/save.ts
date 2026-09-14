@@ -35,6 +35,8 @@ export type Save = {
     fireBest: number;
     /** Fewest moves on the daily slab, keyed by its ISO date. */
     slabBest: Record<string, number>;
+    /** Fewest turns taken to clear the marks. Zero means never finished. */
+    pairsBest: number;
   };
   audio: { track: string; vol: number; muted: boolean };
 };
@@ -50,7 +52,7 @@ const DEFAULTS: Save = {
   vigilCount: 0,
   hasKey: false,
   stirred: 0,
-  games: { fireBest: 0, slabBest: {} },
+  games: { fireBest: 0, slabBest: {}, pairsBest: 0 },
   // Sound is on by default and the first track is Harvest Dawn. The click on
   // the boot overlay is the user gesture browsers demand, so the room has
   // music from the moment it opens rather than after a second deliberate act.
@@ -149,6 +151,22 @@ export function recordFire(score: number): Save {
   const s = read();
   if (score > s.games.fireBest) {
     s.games = { ...s.games, fireBest: score };
+    write(s);
+  }
+  return s;
+}
+
+/**
+ * Records a finished round of the marks, keeping the fewest turns.
+ *
+ * Zero is "never finished" rather than a perfect round, which is why the
+ * comparison is written out instead of using Math.min: a first finish always
+ * beats the default, and a later one only counts if it is lower.
+ */
+export function recordPairs(turns: number): Save {
+  const s = read();
+  if (!s.games.pairsBest || turns < s.games.pairsBest) {
+    s.games = { ...s.games, pairsBest: turns };
     write(s);
   }
   return s;

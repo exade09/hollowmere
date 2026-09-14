@@ -14,6 +14,7 @@ type Props = {
   onSigil: () => void;
   onSpeak: () => void;
   onLedger: () => void;
+  onGames: () => void;
   refresh: () => void;
 };
 
@@ -35,6 +36,7 @@ export default function Chrome({
   onSigil,
   onSpeak,
   onLedger,
+  onGames,
   refresh,
 }: Props) {
   const [copied, setCopied] = useState(false);
@@ -75,6 +77,9 @@ export default function Chrome({
       </button>
       <button className="chrome-btn" onClick={onLedger} title="read a wallet">
         what you hold
+      </button>
+      <button className="chrome-btn" onClick={onGames} title="three small games">
+        minigames
       </button>
 
       <button

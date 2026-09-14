@@ -13,7 +13,13 @@ export type PanelId =
    * hiding it behind a hotzone in one room would mean half the visitors never
    * find it.
    */
-  | 'ledger';
+  | 'ledger'
+  /**
+   * The pastimes. They lived inside the map, which is where a person goes to
+   * look at the places rather than to play something, so they have a room and
+   * a button in the bar of their own.
+   */
+  | 'games';
 
 export type SceneId = 'sanctum' | 'undercroft';
 

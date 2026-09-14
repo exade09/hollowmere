@@ -255,6 +255,50 @@ the docs page, his character sheet in the mirror, the sigil panel and his own
 answer when a visitor asks all read that one string, so they cannot drift
 apart.
 
+## The library, and the wallpapers
+
+`/public/wallpapers/full` is the whole feature. Drop an image in and it appears
+on the wallpapers shelf of the archive the next time the dev server starts or
+the app builds: `scripts/wallpaper-manifest.mjs` writes `lib/wallpapers.ts`
+from the folder, so the list cannot disagree with what is on disk and no array
+has to be edited by hand. Dimensions are read out of each file's header rather
+than assumed, because the grid reserves every tile's aspect ratio before the
+image loads and a wrong guess makes the whole grid jump as it fills.
+
+Grid images come from `/public/wallpapers/thumb`, built by
+`python scripts/wallpaper-thumbs.py` at 460 px — nineteen full-size renders is
+three megabytes to open a panel with, and the tiles are never that wide on
+screen. A wallpaper with no thumbnail still shows, using the full image as its
+own, so a file added by somebody without Python is not missing, only heavier.
+
+A click opens the full image; the corner of each tile saves it.
+
+## The pastimes
+
+Three small games, at `games` in the panel host, reached from the bar and from
+the chest. They used to live inside the map, which is where somebody goes to
+look at the places rather than to play something, so most visitors never found
+them.
+
+All three are classics and none is a stock classic. The watch is whack-a-mole
+played on the sconces that are already in the room. The slab is a sliding
+puzzle cut out of our own render of the Sanctum, shuffled by walking the gap
+through legal moves so today's board is solvable by construction rather than by
+hope. The marks are concentration played with the eight runes the chest is
+locked with, so a few rounds teach the alphabet the lock uses — which is why it
+is that game and not a snake.
+
+Rules live in `lib/games/*.ts` with no imports, so each one is runnable and
+checkable on its own; the components are shells. The third-flip rule in the
+marks is the one worth knowing about: turning a card while two wrong ones are
+still face up clears those two and then turns the third, so a player who does
+not wait is never blocked and never loses the turn they just took. Ignoring the
+click until a timer fires is the usual bug in this game and it feels broken on
+a slow machine.
+
+Every score is local. There is nowhere to send one and a leaderboard would be a
+promise nobody has made.
+
 ## The widgets
 
 The panels are cut from the same material as the rooms rather than styled to
