@@ -5,7 +5,9 @@ import Panel from '@/components/Panel';
 import Dispatches from '@/components/Dispatches';
 import KeepTheFire from '@/components/games/KeepTheFire';
 import Slab from '@/components/games/Slab';
+import WalletRead from '@/components/WalletRead';
 import WickChat from '@/components/WickChat';
+import { XMark } from '@/components/icons';
 import {
   ARCHIVE, BRAND, HOARD_NOTE, HOLD, LOCK_GLYPHS, LOCK_ORDER, RITES, SOCIALS,
   SPHERES, TALLY_NOTES, WICK,
@@ -14,6 +16,7 @@ import {
   CANDLE_HOURS, NIGHTS_FOR_KEY, Save, candleState, markBlock, patch, read,
 } from '@/lib/save';
 import { PanelId, SceneId } from '@/lib/scenes';
+import { useAddress } from '@/lib/useAddress';
 
 type HostProps = {
   id: PanelId;
@@ -30,10 +33,12 @@ function shortCa(ca: string) {
 /* ------------------------------------------------- the sigil: the contract */
 function Sigil({ save, refresh }: { save: Save; refresh: () => void }) {
   const [copied, setCopied] = useState(false);
-  const ca = BRAND.contract;
+  // The field is free text: before there is an address it may hold a word like
+  // TBA, and a word is not something to copy or to look up on an explorer.
+  const { text: ca, isAddress } = useAddress();
 
   const copy = async () => {
-    if (!ca) return;
+    if (!isAddress) return;
     try {
       await navigator.clipboard.writeText(ca);
       setCopied(true);
@@ -49,17 +54,18 @@ function Sigil({ save, refresh }: { save: Save; refresh: () => void }) {
       <div className="ca">
         <span className="mono">{ca || 'the address has not been spoken yet'}</span>
         <span className="chrome-spacer" />
-        <button className="btn" onClick={copy} disabled={!ca}>
+        <button className="btn" onClick={copy} disabled={!isAddress}>
           {copied ? 'copied' : 'copy'}
         </button>
       </div>
       <dl className="rows">
         <div className="row"><dt>ticker</dt><dd className="mono">{BRAND.ticker}</dd></div>
         <div className="row"><dt>chain</dt><dd className="mono">{BRAND.chain}</dd></div>
+        <div className="row"><dt>the keeper runs on</dt><dd className="mono">{BRAND.model}</dd></div>
         <div className="row">
           <dt>ledger</dt>
           <dd>
-            {BRAND.explorer && ca ? (
+            {BRAND.explorer && isAddress ? (
               <a href={`${BRAND.explorer}${ca}`} target="_blank" rel="noreferrer">
                 watch what moves
               </a>
@@ -94,7 +100,10 @@ function Raven({ save }: { save: Save }) {
       <dl className="rows">
         {SOCIALS.map((s) => (
           <div className="row" key={s.name}>
-            <dt>{s.name}</dt>
+            <dt>
+              {s.mark === 'x' && <XMark className="mark-inline" />}
+              {s.name}
+            </dt>
             <dd>
               <a href={s.href} target="_blank" rel="noreferrer">
                 {s.href.replace('https://', '')}
@@ -373,6 +382,7 @@ function Spheres({ save, refresh }: { save: Save; refresh: () => void }) {
 /* ---------------------------------------------- the mirror: card to share */
 function Mirror({ save }: { save: Save }) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const { text: ca, isAddress } = useAddress();
 
   useEffect(() => {
     const c = canvas.current;
@@ -429,8 +439,9 @@ function Mirror({ save }: { save: Save }) {
 
     g.fillStyle = '#d97a3d';
     g.font = '400 18px ui-monospace, monospace';
+    // A word like TBA is printed as it is; only an address gets shortened.
     g.fillText(
-      BRAND.contract ? shortCa(BRAND.contract) : 'the address has not been spoken yet',
+      ca ? (isAddress ? shortCa(ca) : ca) : 'the address has not been spoken yet',
       64,
       H - 64,
     );
@@ -444,7 +455,9 @@ function Mirror({ save }: { save: Save }) {
       const w = (fig.naturalWidth / fig.naturalHeight) * h;
       g.drawImage(fig, W - w - 78, H - h - 74, w, h);
     };
-  }, [save]);
+    // The card is redrawn when the address changes, so a card saved a minute
+    // after the desk writes one carries the new one.
+  }, [save, ca, isAddress]);
 
   const download = () => {
     canvas.current?.toBlob((b) => {
@@ -615,6 +628,26 @@ function Speak() {
   );
 }
 
+/* ------------------------------------------------ the ledger: what you hold */
+
+/**
+ * The other half of what he does.
+ *
+ * He has always read a token for anyone who pasted one. This reads the other
+ * side of the same question — what the person asking is actually holding — and
+ * it is the same rule again: figures, and no opinion about them.
+ */
+function Ledger() {
+  return (
+    <>
+      <p className="lead">
+        give me an address and i will say what is in it. i will not say what to do with it.
+      </p>
+      <WalletRead />
+    </>
+  );
+}
+
 /* --------------------------------------------------------------- the host */
 const META: Record<PanelId, { kicker: string; title: string; icon?: string }> = {
   sigil: { kicker: 'the sigil', title: 'MARK OF THE HOLLOW', icon: 'sigil' },
@@ -628,6 +661,7 @@ const META: Record<PanelId, { kicker: string; title: string; icon?: string }> = 
   altar: { kicker: 'the altar', title: 'THE LONG VIGIL', icon: 'altar' },
   gate: { kicker: 'the gate', title: 'THE SEALED GATE', icon: 'gate' },
   wick: { kicker: 'the keeper', title: 'SPEAK TO WICK', icon: undefined },
+  ledger: { kicker: 'the ledger', title: 'WHAT YOU HOLD', icon: undefined },
 };
 
 export default function PanelHost({ id, onClose, onTravel, save, refresh }: HostProps) {
@@ -646,6 +680,7 @@ export default function PanelHost({ id, onClose, onTravel, save, refresh }: Host
       {id === 'altar' && <Altar save={save} refresh={refresh} />}
       {id === 'gate' && <Gate save={save} refresh={refresh} />}
       {id === 'wick' && <Speak />}
+      {id === 'ledger' && <Ledger />}
     </Panel>
   );
 }

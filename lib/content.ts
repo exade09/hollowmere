@@ -21,10 +21,31 @@ export const BRAND = {
   explorer:
     process.env.NEXT_PUBLIC_EXPLORER || 'https://robinhoodchain.blockscout.com/token/',
   contract: process.env.NEXT_PUBLIC_CONTRACT || '',
+  /**
+   * What the keeper runs on. Named here rather than typed out in three places:
+   * the docs page states it, the mirror lists it on his sheet, and he says it
+   * himself when a visitor asks, so it is one string or it is eventually three
+   * different ones.
+   */
+  model: 'Fable 5.1',
 };
 
-export const SOCIALS: { name: string; href: string; note: string }[] = [
-  { name: 'X', href: 'https://x.com/', note: 'loudest there' },
+/** The account. One handle, and every link to it comes from here. */
+export const ACCOUNT = 'hollowrh';
+
+export const SOCIALS: {
+  name: string;
+  href: string;
+  note: string;
+  /** Which drawn mark sits beside the row, if any. */
+  mark?: 'x';
+}[] = [
+  {
+    name: 'X',
+    href: `https://x.com/${ACCOUNT}`,
+    note: 'the only place announcements go',
+    mark: 'x',
+  },
   { name: 'Telegram', href: 'https://t.me/', note: 'for the ones who never sleep' },
 ];
 
@@ -76,7 +97,12 @@ export const ARCHIVE: {
   },
   { name: 'press kit', note: 'palette and mark', state: 'soon' },
   { name: 'seals', note: 'twenty. none drawn', state: 'soon' },
-  { name: 'the manual', note: 'pages torn out', state: 'lost' },
+  {
+    name: 'the manual',
+    note: 'what he reads, and what he will not say',
+    state: 'ready',
+    href: '/docs',
+  },
   { name: 'the full rites', note: 'burnt at the edges', state: 'lost' },
 ];
 
@@ -101,6 +127,7 @@ export const WICK: [string, string][] = [
   ['duty', 'keep the fire'],
   ['likes', 'quiet, a steady flame'],
   ['dislikes', 'draughts, visitors'],
+  ['runs on', BRAND.model],
   ['status', 'cursed. otherwise fine'],
 ];
 

@@ -70,6 +70,7 @@ export default function Home() {
           onMap={() => setPanel('map')}
           onSigil={() => setPanel('sigil')}
           onSpeak={() => setPanel('wick')}
+          onLedger={() => setPanel('ledger')}
           refresh={refresh}
         />
       )}

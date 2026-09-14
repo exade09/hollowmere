@@ -3,6 +3,7 @@ import { ChatTurn, reply } from '@/lib/agent/chat';
 import { checkChatLimits, ipOf, visitorKey } from '@/lib/agent/limits';
 import { getProvider } from '@/lib/agent/provider';
 import { readToken } from '@/lib/agent/token';
+import { readWallet } from '@/lib/agent/wallet';
 
 /**
  * Speaking to Wick.
@@ -13,9 +14,10 @@ import { readToken } from '@/lib/agent/token';
  * day, and a ceiling across everyone per day.
  *
  * If the visitor's message contains an address, the chain is read first and
- * the figures are handed to Wick as the only ones he may state. He will not
- * judge them — that rule is enforced after the fact in auditReply, not just
- * asked for in the prompt.
+ * the figures are handed to Wick as the only ones he may state. An address
+ * with code behind it is read as a token; one with none is read as a wallet,
+ * with its positions. He will not judge either of them — that rule is
+ * enforced after the fact in auditReply, not just asked for in the prompt.
  *
  * History comes from the client, which means it cannot be trusted as a record
  * of anything. That is fine: it is only there to make a conversation feel
@@ -68,12 +70,22 @@ export async function POST(req: NextRequest) {
         .map((t) => ({ role: t.role, content: t.content.slice(0, MAX_MESSAGE) }))
     : [];
 
-  // An address in the message turns this into a reading.
+  // An address in the message turns this into a reading. Which kind of reading
+  // is decided by the chain rather than guessed from the message: the token
+  // reader answers first, and an address with no code deployed at it is not a
+  // token at all but somebody's wallet, so it is read as one. That way "what
+  // is this" and "what am I holding" are the same gesture — paste an address —
+  // and the visitor never has to know which button they were supposed to press.
   let token = null;
+  let wallet = null;
   const found = message.match(ADDRESS);
   const rpc = process.env.CHAIN_RPC_URL;
   if (found && rpc) {
     token = await readToken(rpc, found[0]);
+    if (token.notAContract) {
+      wallet = await readWallet(rpc, found[0]);
+      token = null;
+    }
   } else if (found && !rpc) {
     return NextResponse.json({
       text: 'i cannot see the chain from here tonight.\n\nthe stone is quiet',
@@ -83,10 +95,20 @@ export async function POST(req: NextRequest) {
 
   try {
     const provider = getProvider();
-    const out = await reply(provider, history, { message, token });
+    const out = await reply(provider, history, { message, token, wallet });
     return NextResponse.json({
       text: out.text,
       ...(token ? { read: { address: token.address, symbol: token.symbol, ok: token.ok } } : {}),
+      ...(wallet
+        ? {
+            read: {
+              address: wallet.address,
+              kind: 'wallet' as const,
+              positions: wallet.positions?.length ?? 0,
+              ok: wallet.ok,
+            },
+          }
+        : {}),
       ...(out.withheld ? { withheld: out.withheld } : {}),
     });
   } catch (e) {

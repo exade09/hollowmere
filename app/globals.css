@@ -971,3 +971,303 @@ a:hover { border-bottom-color: var(--spectre); }
   .speak-head { gap: 13px; }
   .speak-figure { width: 62px; flex-basis: 62px; }
 }
+
+/* --------------------------------------------------------------- the marks
+   Drawn icons, not rendered ones. They take their colour from the text they
+   sit in, so a mark inside a row is the same grey as the label beside it and
+   the same bone as the label when it lights up. */
+.chrome-link { border-bottom: none; color: var(--muted); }
+.chrome-link:hover { border-bottom: none; color: var(--bone); background: #282235; }
+.chrome-link svg { display: block; }
+.mark-inline { vertical-align: -2px; margin-right: 7px; opacity: .8; }
+
+/* ------------------------------------------------------------- the ledger
+   Reading a wallet. Same plate vocabulary as every other widget: mono for
+   figures, the world's teal only on what is actually held, and a row that
+   holds nothing dimmed rather than hidden — a token that passed through and
+   left nothing is part of the reading. */
+.ledger { margin: 22px 0 4px; }
+
+.ledger-ask { display: flex; flex-wrap: wrap; gap: 8px; }
+.ledger-ask input {
+  flex: 1 1 260px;
+  min-width: 0;
+  padding: 11px 14px;
+  clip-path: var(--cut-sm);
+  background: #0e0c15;
+  box-shadow: var(--bevel);
+  border: none;
+  color: var(--bone);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 14px;
+}
+.ledger-ask input::placeholder { color: #6b6478; }
+
+.ledger-wallets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+.ledger-wallets .label-sm { margin-right: 2px; }
+
+.ledger-note {
+  font-family: var(--font-mono), monospace;
+  font-size: 12.5px;
+  color: var(--ember);
+  margin: 14px 0 0;
+  padding-left: 11px;
+  border-left: 2px solid var(--ember);
+}
+
+.ledger-table { margin: 18px 0 4px; }
+.ledger-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 78px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 14px;
+}
+.ledger-row.head {
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom-color: var(--line);
+}
+.ledger-row b { font-weight: 500; color: var(--bone); }
+.ledger-row small { display: block; font-size: 12px; color: var(--muted); }
+.ledger-row .mono { font-size: 13.5px; }
+.ledger-row:not(.head) b { color: var(--spectre); }
+.ledger-row.empty b { color: var(--muted); }
+.ledger-row.empty { opacity: .72; }
+
+.ledger-said {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 17.5px;
+  line-height: 1.6;
+  white-space: pre-line;
+  color: var(--bone);
+  margin: 16px 0 0;
+  padding-left: 13px;
+  border-left: 2px solid var(--spectre);
+}
+
+@media (max-width: 560px) {
+  .ledger-row {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    row-gap: 2px;
+  }
+  .ledger-row.head { display: none; }
+  .ledger-row span:nth-child(3), .ledger-row span:nth-child(4) {
+    font-size: 12px;
+    color: var(--muted);
+  }
+}
+
+/* --------------------------------------------------------------- the manual
+   Long-form reading, so this is the one surface in the project that is mostly
+   text. It keeps the material — chamfered plates for anything set apart, mono
+   for figures and code, teal for links — but drops the widget density: one
+   column at a comfortable measure, generous space between sections, and no
+   plate around the prose itself, which would turn a page you read into a page
+   you scan. */
+.docs {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 40px 20px 110px;
+}
+
+.docs-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--spectre);
+  margin: 0 0 14px;
+}
+
+.docs h1 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(30px, 6vw, 44px);
+  line-height: 1.05;
+  margin: 0 0 14px;
+}
+
+.docs-lead {
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 58ch;
+  margin: 0 0 26px;
+}
+
+.docs-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 26px;
+  border-bottom: 1px solid var(--line);
+}
+.docs-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  clip-path: var(--cut-sm);
+  background: #16131f;
+  box-shadow: var(--bevel);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.docs-status b {
+  font-weight: 500;
+  color: var(--bone);
+  text-transform: none;
+  letter-spacing: .02em;
+}
+.docs-status .mono { font-size: 11.5px; word-break: break-all; }
+
+.docs-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 16px;
+  margin: 24px 0 8px;
+}
+.docs-nav a {
+  border-bottom: none;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.docs-nav a:hover { color: var(--spectre); }
+
+.docs section {
+  padding-top: 34px;
+  margin-top: 12px;
+  scroll-margin-top: 24px;
+}
+.docs section + section { border-top: 1px solid var(--line-soft); }
+
+.docs h2 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  font-size: 25px;
+  line-height: 1.15;
+  margin: 0 0 14px;
+}
+.docs h3 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  font-size: 18px;
+  margin: 26px 0 10px;
+  color: var(--muted);
+}
+
+.docs p { font-size: 15.5px; line-height: 1.72; margin: 0 0 15px; max-width: 66ch; }
+.docs code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13.5px;
+  padding: 1px 5px;
+  background: #1b1825;
+  color: var(--bone);
+}
+
+.docs-list { margin: 0 0 16px; padding: 0; list-style: none; max-width: 66ch; }
+.docs-list li {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 12px;
+  font-size: 15.5px;
+  line-height: 1.68;
+  color: var(--muted);
+}
+/* A facet rather than a bullet: the same mark as the tally and the rites. */
+.docs-list li::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  top: 10px;
+  width: 6px;
+  height: 6px;
+  background: var(--stone);
+  transform: rotate(45deg);
+}
+.docs-list li b { color: var(--bone); font-weight: 500; }
+
+.docs-rows { margin: 0 0 8px; }
+.docs-rows > div {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.docs-rows dt {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--spectre);
+  margin-bottom: 6px;
+}
+.docs-rows dd {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.68;
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+/* Where the reading is blind. Set apart on purpose: it is the part of the
+   documentation that costs something to admit, so it does not get buried in
+   the middle of a paragraph. */
+.docs-gap {
+  clip-path: var(--cut-md);
+  background: #16131f;
+  box-shadow: var(--bevel);
+  padding: 15px 17px;
+  border-left: 2px solid var(--ember);
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.docs-account a {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border-bottom: none;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  letter-spacing: .1em;
+  padding: 9px 14px;
+  clip-path: var(--cut-sm);
+  background: #16131f;
+  box-shadow: var(--bevel);
+}
+.docs-account a:hover { background: #221d2e; }
+
+.docs-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 46px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}

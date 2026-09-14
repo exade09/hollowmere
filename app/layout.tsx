@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Grenze, Alegreya_Sans, IBM_Plex_Mono } from 'next/font/google';
+import { ACCOUNT } from '@/lib/content';
 import './globals.css';
 
 const display = Grenze({
@@ -39,6 +40,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    // Both are the one account, so a link preview credits it rather than
+    // showing a card with nobody attached to it.
+    site: `@${ACCOUNT}`,
+    creator: `@${ACCOUNT}`,
     title: 'HOLLOWMERE',
     description: 'the curse never checked out.',
     images: ['/clips/sanctum/poster/00_idle.jpg'],

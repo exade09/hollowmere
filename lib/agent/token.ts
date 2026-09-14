@@ -26,7 +26,7 @@ import { sanitize } from './sanitize';
 const EIP1967_IMPL =
   '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 
-const SEL = {
+export const SEL = {
   name: '0x06fdde03',
   symbol: '0x95d89b41',
   decimals: '0x313ce567',
@@ -36,10 +36,10 @@ const SEL = {
 } as const;
 
 /** keccak256("Transfer(address,address,uint256)") */
-const TRANSFER_TOPIC =
+export const TRANSFER_TOPIC =
   '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
-const ZERO = '0x0000000000000000000000000000000000000000';
+export const ZERO = '0x0000000000000000000000000000000000000000';
 
 export type TokenReport = {
   ok: boolean;
@@ -100,7 +100,7 @@ export type TokenReport = {
 
 /* ------------------------------------------------------------------ rpc bits */
 
-type Call = { method: string; params: unknown[] };
+export type Call = { method: string; params: unknown[] };
 
 /**
  * One call's outcome. The distinction between "the node answered with nothing"
@@ -109,7 +109,7 @@ type Call = { method: string; params: unknown[] };
  * deployed at an address whose node had simply refused the request, which is a
  * false statement about somebody else's token.
  */
-type Answer = { ok: boolean; value?: unknown; error?: string };
+export type Answer = { ok: boolean; value?: unknown; error?: string };
 
 async function send(url: string, body: unknown, ms: number): Promise<unknown> {
   const ctl = new AbortController();
@@ -141,7 +141,7 @@ function toAnswer(row: { result?: unknown; error?: { message?: string } } | unde
  * public nodes do not support batching, and finding that out should cost one
  * extra round trip rather than the whole reading.
  */
-async function rpcBatch(url: string, calls: Call[], ms = 20_000): Promise<Answer[]> {
+export async function rpcBatch(url: string, calls: Call[], ms = 20_000): Promise<Answer[]> {
   const payload = calls.map((c, i) => ({
     jsonrpc: '2.0',
     id: i + 1,
@@ -180,15 +180,15 @@ async function rpcBatch(url: string, calls: Call[], ms = 20_000): Promise<Answer
   return out;
 }
 
-function ethCall(to: string, data: string): Call {
+export function ethCall(to: string, data: string): Call {
   return { method: 'eth_call', params: [{ to, data }, 'latest'] };
 }
 
-function padAddress(addr: string): string {
+export function padAddress(addr: string): string {
   return addr.replace(/^0x/, '').toLowerCase().padStart(64, '0');
 }
 
-function hexToBigInt(hex: unknown): bigint | undefined {
+export function hexToBigInt(hex: unknown): bigint | undefined {
   if (typeof hex !== 'string' || !/^0x[0-9a-f]*$/i.test(hex) || hex.length < 3) return undefined;
   try {
     return BigInt(hex);
@@ -202,7 +202,7 @@ function hexToBigInt(hex: unknown): bigint | undefined {
  * dynamic encoding, and the bytes32 that predates it and is still common in
  * hand-written tokens.
  */
-function decodeString(hex: unknown): string | undefined {
+export function decodeString(hex: unknown): string | undefined {
   if (typeof hex !== 'string' || !hex.startsWith('0x')) return undefined;
   const body = hex.slice(2);
   if (body.length === 0) return undefined;
@@ -233,12 +233,12 @@ function addressFromWord(word: unknown): string | undefined {
   return `0x${word.slice(-40)}`.toLowerCase();
 }
 
-function addressFromTopic(topic: string): string {
+export function addressFromTopic(topic: string): string {
   return `0x${topic.slice(-40)}`.toLowerCase();
 }
 
 /** Scales a raw amount by decimals into whole tokens, without losing the magnitude. */
-function scale(raw: bigint, decimals: number): number {
+export function scale(raw: bigint, decimals: number): number {
   if (decimals <= 0) return Number(raw);
   const d = BigInt(10) ** BigInt(decimals);
   const whole = raw / d;

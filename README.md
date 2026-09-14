@@ -36,15 +36,15 @@ Then open http://localhost:3000.
 | `NEXT_PUBLIC_EXPLORER` | token page prefix; the address is appended | Blockscout on Robinhood Chain |
 | `NEXT_PUBLIC_TICKER` | ticker | `HOLLOW` |
 | `NEXT_PUBLIC_SITE_URL` | canonical origin for OG tags | Vercel's production URL |
+| `ADMIN_PASSWORD` | the password for the address desk at `/admin` | the desk refuses everything |
+| `CHAIN_RPC_URL` | JSON-RPC endpoint; without it no token or wallet can be read | the keeper says the stone is quiet |
 
 Set them in Vercel under *Project → Settings → Environment Variables*. Nothing
 else needs to change: the address appears in three places at once — the bottom
 bar, the sigil panel and the shareable card — and all three read the same value.
 
-When the address needs to change without a redeploy, wire
-[Vercel Edge Config](https://vercel.com/docs/edge-config) into
-`app/api/config/route.ts`. The front end already reads from that endpoint's
-shape, so nothing above it has to move.
+The address itself no longer needs a redeploy to change: the desk at `/admin`
+writes it and `/api/config` serves it. See **The address desk** below.
 
 ## Deploying
 
@@ -78,6 +78,39 @@ address that is almost right is worse than none on a page people copy from, so
 while it is empty the bottom bar reads "address not spoken yet" and the copy
 button stays disabled.
 
+## The address desk
+
+`/admin` changes the text after **CA:** without a deploy. One field, and it
+takes any text: an address, or a word like TBA or SOON, because those are
+states this project passes through rather than a separate feature. A value
+shaped like an address gets a working copy button and an explorer link; a word
+gets neither, which is the only validation worth having here.
+
+The value lands in the store and the site picks it up in the bar, the sigil
+panel and the share card at once — all three read `/api/config` through
+`lib/useAddress.ts`, which re-reads on tab focus and polls every twenty
+seconds. `NEXT_PUBLIC_CONTRACT` stays the fallback, so a deployment that never
+opens the desk behaves exactly as it did before the desk existed.
+
+Two things have to be set in Vercel for it to work in production:
+
+```bash
+printf '<the password>' | vercel env add ADMIN_PASSWORD production
+```
+
+and KV, because a serverless filesystem is read-only: with
+`KV_REST_API_URL` and `KV_REST_API_TOKEN` unset the desk writes to
+`.agent/settings.json` and the value vanishes on the next cold start. The desk
+says so on screen when that is the case rather than letting it be discovered
+later. Vercel's KV integration injects both variables; Upstash's own dashboard
+calls them `UPSTASH_REDIS_REST_*` and either pair works.
+
+With `ADMIN_PASSWORD` unset the route refuses everything. Default deny is the
+only sane behaviour for something that changes which address a page tells
+people to buy — and for the same reason the password is server-side only,
+compared as two hashes so the comparison leaks neither its length nor the
+position of the first wrong character, and rate limited per address.
+
 ## Layout
 
 ```
@@ -85,17 +118,34 @@ app/
   page.tsx            scene switching, panel routing, session bookkeeping
   layout.tsx          fonts, metadata, OG card
   globals.css         design tokens and every component style
-  api/config/route.ts contract and chain, so they can move without a rebuild
+  docs/page.tsx       the manual: what he reads and what he will not say
+  admin/page.tsx      the address desk
+  agent/page.tsx      the review desk, where drafts are approved
+  api/config/route.ts the live address, chain and ticker
+  api/token/route.ts  reading a token, figures only
+  api/wallet/route.ts reading a wallet, positions only
+  api/wick/route.ts   speaking to him, the one endpoint that costs money
+  api/admin/address/  the desk's gate and its one field
 components/
   Stage.tsx           idle video + hover clip + transparent SVG hotzones
   AudioBed.tsx        one looping audio element, fades between tracks
   Chrome.tsx          permanent bottom bar
   Panel.tsx           modal shell with focus handling and escape
-  panels/index.tsx    the ten widgets
+  WickChat.tsx        the conversation
+  WalletRead.tsx      pasting or connecting a wallet, and the positions table
+  AddressDesk.tsx     the admin field
+  icons.tsx           the two drawn marks: the account, and the manual
+  panels/index.tsx    the eleven widgets
 lib/
   scenes.ts           scenes and hotzone rectangles
   content.ts          every readable string in one file
+  settings.ts         the one string that changes without a deploy
+  useAddress.ts       that string, live, wherever it is shown
   save.ts             localStorage shape and the two derived timers
+  agent/token.ts      reading a contract over plain rpc
+  agent/wallet.ts     reading a wallet: index first, log discovery second
+  agent/chat.ts       who he is, and what he will not say
+  agent/sanitize.ts   untrusted text in, and the audit on the way out
 public/clips/
   sanctum/ sanctum-21x9/           nine clips each, {1080p,720p,poster}
   undercroft/ undercroft-21x9/     four clips each
@@ -106,6 +156,61 @@ public/ui/
 public/audio/         the four tracks the spheres play
 blender/              the scenes and the scripts that generate all of the above
 ```
+
+## Reading a wallet
+
+`lib/agent/wallet.ts`, behind `/api/wallet`. Two readers, tried in order:
+
+- **the index.** An explorer keeps a row per holder per token, so it can answer
+  "everything this address holds" in one request. This is the complete answer.
+  Blockscout's v2 shape is what the code speaks; on Robinhood Chain that host
+  currently answers a browser and returns 403 to a server, so it is tried,
+  cached as shut for ten minutes when it refuses, and never relied on.
+- **the logs.** A plain node has no such index. So positions are *discovered*:
+  two `eth_getLogs` queries over a window of recent blocks find every Transfer
+  with the address as sender or recipient, each log names the token contract it
+  came from, and the live balance of each contract found is then read directly.
+  Real balances — but only for tokens that moved inside the window.
+
+Which reader answered is on the report and in the sentences the keeper is
+given, because the difference between them is the difference between a
+portfolio and a sample, and a bag received long ago and never touched since is
+invisible to the second one.
+
+Three details worth keeping if this file is ever rewritten, each of them found
+by running it against a real address rather than by thinking about it:
+
+- **a share of supply over 100% is not printed.** Spam tokens report a supply
+  that does not match the balances they mint; one airdrop came back at five
+  thousand trillion percent of its own supply. An impossible number is dropped
+  rather than shown.
+- **a share that rounds to zero is not zero.** A holder owns more than none, so
+  it reads "under 0.01%".
+- **code at an address does not make it a contract.** Since EIP-7702 an
+  ordinary wallet can carry three bytes of designator and an implementation
+  address. The first real wallet tested here was exactly that, and calling it a
+  contract would have been a false statement about somebody's wallet.
+
+Connecting MetaMask or Rabby only calls `eth_requestAccounts`. Nothing is
+signed, no transaction is proposed, and no key is involved: it is a way of
+getting forty characters out of an extension, and everything after it is the
+same public read as a pasted address. Wallets are found through EIP-6963 so
+each extension names itself — with both installed, `window.ethereum` is
+whichever won the race to inject, and a button labelled MetaMask would open
+Rabby often enough to be a bug.
+
+## The manual
+
+`/docs` states what the keeper reads, how he reads it, where the reading is
+blind, and what he will never say. It is reached from the bar, from the shelf
+in the tower — where it used to be a volume with its pages torn out — and from
+the account. It is server-rendered and uncached so the address on it is the
+live one.
+
+The keeper runs on **Fable 5.1**. That is `BRAND.model` in `lib/content.ts`, and
+the docs page, his character sheet in the mirror, the sigil panel and his own
+answer when a visitor asks all read that one string, so they cannot drift
+apart.
 
 ## The widgets
 
@@ -168,7 +273,7 @@ list is `SPHERES` in `lib/content.ts`.
 Waiting on content, and marked `TODO` in `lib/content.ts`:
 
 - the founder's note that the chest lock unlocks;
-- the real social links and the press kit;
+- the Telegram link and the press kit;
 - the third location behind the sealed gate.
 
 Every one of those degrades in the world's voice rather than showing an empty

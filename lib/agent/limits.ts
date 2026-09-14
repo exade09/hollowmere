@@ -103,6 +103,38 @@ export async function checkTokenLimits(visitor: string): Promise<Verdict> {
     : { allowed: true };
 }
 
+/**
+ * A wallet reading is heavier than a token one: two log queries and up to
+ * eighty calls, all on somebody else's node. Same shape as the token limit,
+ * its own counter, and a lower ceiling.
+ */
+export async function checkWalletLimits(visitor: string): Promise<Verdict> {
+  const max = Number(process.env.WALLET_PER_MINUTE || 6);
+  const n = await bump({
+    key: `wal:m:${visitor}:${Math.floor(Date.now() / 60_000)}`,
+    max,
+    windowSec: 60,
+  });
+  return n > max ? { allowed: false, which: 'minute', retryAfterSec: 60 } : { allowed: true };
+}
+
+/**
+ * Guesses at the admin password, per IP.
+ *
+ * The comparison itself is constant time, but nothing stops somebody trying
+ * ten thousand passwords unless a counter does. Deliberately tight: an admin
+ * who mistypes twice is still fine, and a script is not.
+ */
+export async function checkAdminLimits(visitor: string): Promise<Verdict> {
+  const max = Number(process.env.ADMIN_TRIES_PER_MINUTE || 8);
+  const n = await bump({
+    key: `adm:m:${visitor}:${Math.floor(Date.now() / 60_000)}`,
+    max,
+    windowSec: 60,
+  });
+  return n > max ? { allowed: false, which: 'minute', retryAfterSec: 60 } : { allowed: true };
+}
+
 /** Best effort, and that is all a client IP ever is behind a proxy. */
 export function ipOf(headers: Headers): string {
   return (

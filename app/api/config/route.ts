@@ -1,25 +1,38 @@
 import { BRAND } from '@/lib/content';
+import { currentAddress, looksLikeAddress } from '@/lib/settings';
 
 /**
- * Contract address and chain, served from their own endpoint so they can change
- * without a rebuild. Today they come from environment variables; when they need
- * to change live, Vercel Edge Config drops in right here and the front end
- * stays untouched.
+ * Contract address and chain, served from their own endpoint so they can
+ * change without a rebuild — and now they actually do. The address comes from
+ * the store the admin desk writes, falling back to NEXT_PUBLIC_CONTRACT when
+ * nothing has been set there, so a deployment that never opens the desk
+ * behaves exactly as it always did.
  *
- * It answers with BRAND rather than raw environment variables, which is the
- * same thing the room itself reads. Returning the bare variables made this look
- * unconfigured — four empty strings — while the site was in fact showing the
- * right chain and ticker from the defaults in code. Only the contract address
- * is genuinely empty, and it stays that way until there is one.
+ * The rest still answers with BRAND rather than raw environment variables,
+ * which is the same thing the room itself reads. Returning the bare variables
+ * made this look unconfigured — four empty strings — while the site was in
+ * fact showing the right chain and ticker from the defaults in code.
+ *
+ * `isAddress` is the flag the front end needs and should not work out for
+ * itself: the field is free text, so it may hold TBA or SOON, and only a value
+ * shaped like an address gets a copy button and an explorer link.
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return Response.json({
-    contract: BRAND.contract,
-    chain: BRAND.chain,
-    explorer: BRAND.explorer,
-    ticker: BRAND.ticker,
-  });
+  const now = await currentAddress();
+  return Response.json(
+    {
+      contract: now.text,
+      isAddress: looksLikeAddress(now.text),
+      from: now.from,
+      chain: BRAND.chain,
+      explorer: BRAND.explorer,
+      ticker: BRAND.ticker,
+    },
+    // The bar has to change the moment the desk writes, so nothing on the way
+    // here is allowed to hold a copy.
+    { headers: { 'cache-control': 'no-store, max-age=0' } },
+  );
 }

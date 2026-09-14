@@ -6,7 +6,14 @@ export type PanelId =
    * from the permanent bar at the bottom, so it is on screen in every scene
    * and nobody has to find it by hovering the room.
    */
-  | 'wick';
+  | 'wick'
+  /**
+   * Reading the visitor's own wallet. Reached from the bar for the same reason
+   * as the conversation: it is the other thing somebody arrives wanting, and
+   * hiding it behind a hotzone in one room would mean half the visitors never
+   * find it.
+   */
+  | 'ledger';
 
 export type SceneId = 'sanctum' | 'undercroft';
 
