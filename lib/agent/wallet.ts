@@ -53,6 +53,7 @@ import {
   scale,
 } from './token';
 import { sanitize } from './sanitize';
+import { currentAddress } from '../settings';
 
 /** One token this wallet holds or moved. */
 export type Position = {
@@ -311,14 +312,27 @@ async function positionsFromExplorer(addr: string): Promise<Position[] | null> {
  *
  * The project's own contract is always in the list, because "do i hold this
  * one, and how much" is the question the site exists to answer and it must
- * never depend on somebody else's index being awake. KNOWN_TOKENS adds any
- * others worth always checking, comma separated.
+ * never depend on somebody else's index being awake.
+ *
+ * It comes from the LIVE address rather than from NEXT_PUBLIC_CONTRACT, and
+ * that distinction is the whole reason this is async. The address is set at the
+ * desk and kept in the store now; a build-time variable is only the fallback,
+ * and reading the variable alone meant the one token the site is about was
+ * missing from every wallet reading the moment the desk was used as intended.
+ *
+ * KNOWN_TOKENS adds any others worth always checking, comma separated. A
+ * non-EVM address — the field accepts Solana too — is dropped here, because
+ * balanceOf is an EVM call and asking a node for one is not a reading, it is
+ * an error with a number in it.
  */
-function knownTokens(): string[] {
-  const raw = [
-    process.env.NEXT_PUBLIC_CONTRACT || '',
-    ...(process.env.KNOWN_TOKENS || '').split(','),
-  ];
+async function knownTokens(): Promise<string[]> {
+  let live = '';
+  try {
+    live = (await currentAddress()).text;
+  } catch {
+    /* the store is unreachable; the variable below still stands */
+  }
+  const raw = [live, process.env.NEXT_PUBLIC_CONTRACT || '', ...(process.env.KNOWN_TOKENS || '').split(',')];
   const out: string[] = [];
   for (const t of raw) {
     const a = t.trim().toLowerCase();
@@ -418,7 +432,7 @@ export async function readWallet(
     // The tokens this deployment always asks about, read directly. Five calls
     // for one contract, and it means the site's own token can never be missing
     // from a reading because an index was asleep.
-    const known = await positionsFromKnown(rpcUrl, addr, knownTokens());
+    const known = await positionsFromKnown(rpcUrl, addr, await knownTokens());
     const merge = (found: Position[]): Position[] => {
       const have = new Set(found.map((p) => p.token));
       return [...known.filter((k) => !have.has(k.token)), ...found];

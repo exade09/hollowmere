@@ -34,6 +34,25 @@ type State = {
 
 const KEY = 'hollowmere.admin.key';
 
+/**
+ * A response body, whether or not it is json.
+ *
+ * A route that throws answers with an empty body, and calling .json() on that
+ * throws its own error — which is how a read-only filesystem on the host
+ * turned into "SyntaxError: Unexpected end of JSON input" on screen. The
+ * status code is always something; the body is not.
+ */
+async function readJson(r: Response): Promise<Partial<State> & { error?: string }> {
+  const text = await r.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as Partial<State> & { error?: string };
+  } catch {
+    // A body that is not json at all — a host's own error page, usually.
+    return { error: text.slice(0, 160) };
+  }
+}
+
 export default function AddressDesk() {
   const [password, setPassword] = useState('');
   const [remembered, setRemembered] = useState(false);
@@ -65,14 +84,14 @@ export default function AddressDesk() {
           headers: { authorization: `Bearer ${use}` },
           cache: 'no-store',
         });
-        const j = (await r.json()) as State & { error?: string };
+        const j = await readJson(r);
         if (!r.ok) {
           setState(null);
-          setNote(j.error || 'that did not open');
+          setNote(j.error || `that did not open (${r.status})`);
           return;
         }
-        setState(j);
-        setDraft(j.address);
+        setState(j as State);
+        setDraft(j.address || '');
         try {
           window.localStorage.setItem(KEY, use);
           setRemembered(true);
@@ -101,13 +120,13 @@ export default function AddressDesk() {
         headers: { authorization: `Bearer ${password}`, 'content-type': 'application/json' },
         body: JSON.stringify({ address: value }),
       });
-      const j = (await r.json()) as State & { error?: string };
+      const j = await readJson(r);
       if (!r.ok) {
-        setNote(j.error || 'it would not save');
+        setNote(j.error || `it would not save (${r.status})`);
         return;
       }
-      setState(j);
-      setDraft(j.address);
+      setState(j as State);
+      setDraft(j.address || '');
       setNote(value ? 'written. the site is showing it' : 'cleared');
     } catch (e) {
       setNote(`it would not save: ${String(e).slice(0, 120)}`);
@@ -189,9 +208,10 @@ export default function AddressDesk() {
 
       {!state.durable && (
         <p className="agent-note">
-          This deployment is writing to a file, which a serverless host does not keep. Set
-          KV_REST_API_URL and KV_REST_API_TOKEN in Vercel or the value will vanish on the next
-          cold start.
+          There is no KV store configured, so this desk is writing to a file. That works on a
+          laptop and not on a serverless host, where the filesystem is read-only and the write
+          fails outright. Add KV in Vercel — Storage, KV, Connect — which sets
+          KV_REST_API_URL and KV_REST_API_TOKEN for you, and then this line goes away.
         </p>
       )}
 
