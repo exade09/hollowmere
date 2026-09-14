@@ -181,6 +181,23 @@ export function buildChatTurn(input: {
 
   return parts.join('\n');
 }
+function fitModelReply(raw: string): string {
+  const lines = raw
+    .trim()
+    .split(/\n+/)
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .slice(0, 5);
+
+  while (lines.length > 2 && lines.join('\n\n').length > 880) lines.pop();
+  const text = lines.join('\n\n');
+  if (text.length <= 880) return text;
+
+  const cut = text.slice(0, 877);
+  const lastWholeWord = cut.replace(/\s+\S*$/, '').trimEnd();
+  return `${lastWholeWord || cut}...`;
+}
+
 
 export async function reply(
   provider: Provider,
@@ -198,6 +215,7 @@ export async function reply(
     { role: 'user', content: buildChatTurn(input) },
   ];
   const out = await provider.chat(WICK_CHAT, turns);
+  const text = fitModelReply(out.text);
   // The addresses he was actually shown: the one asked about, and the owner
   // the chain reported for it. Anything else in the reply is invented.
   const allowedAddresses = [
@@ -205,9 +223,9 @@ export async function reply(
     input.token?.owner,
     ...(input.wallet ? walletAddresses(input.wallet) : []),
   ].filter((a): a is string => typeof a === 'string');
-  const verdict = auditReply(out.text, allowedAddresses);
+  const verdict = auditReply(text, allowedAddresses);
   if (!verdict.ok) return { text: DEFLECTION, withheld: verdict.why };
-  return { text: out.text };
+  return { text };
 }
 
 /**
