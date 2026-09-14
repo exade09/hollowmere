@@ -148,6 +148,65 @@ export function getSettingsStore(): SettingsStore {
 }
 
 /**
+ * Why the store is the one it is.
+ *
+ * "store: file" on the desk is true and useless: it does not say whether
+ * nobody has created a redis yet, whether one exists but the deployment has
+ * not picked the variables up, or whether the integration named them something
+ * this code does not read. Those three have different fixes and look
+ * identical, so the server says which of the names it can actually see.
+ *
+ * NAMES ONLY. A token is a token wherever it is printed, and an admin page is
+ * not a safe place to print one — so this reports presence and nothing else,
+ * and the list of names it will even look at is fixed here rather than taken
+ * from the environment.
+ */
+export function storeDiagnosis(): {
+  kind: SettingsStore['kind'];
+  durable: boolean;
+  /** Store-related variables the server can see, by name. */
+  seen: string[];
+  /** The pair this code reads, and whether it is complete. */
+  hint: string;
+} {
+  const CANDIDATES = [
+    'KV_REST_API_URL',
+    'KV_REST_API_TOKEN',
+    'UPSTASH_REDIS_REST_URL',
+    'UPSTASH_REDIS_REST_TOKEN',
+    // Not usable by this code, but very much worth naming when present: these
+    // are redis wire-protocol strings, and the store speaks REST over https.
+    'KV_URL',
+    'REDIS_URL',
+    'KV_REST_API_READ_ONLY_TOKEN',
+    // Present on any Vercel deployment; proves the report is reading the real
+    // server environment rather than an empty object.
+    'VERCEL',
+  ];
+  const seen = CANDIDATES.filter((n) => !!process.env[n]);
+  const store = getSettingsStore();
+
+  let hint: string;
+  if (store.durable) {
+    hint = 'a redis is answering; nothing to do';
+  } else if (seen.some((n) => n === 'KV_URL' || n === 'REDIS_URL')) {
+    hint =
+      'there is a redis connection string here but not the REST pair this code uses. ' +
+      'the upstash integration normally sets KV_REST_API_URL and KV_REST_API_TOKEN too — ' +
+      'if it did not, copy the REST url and token from the upstash dashboard into those ' +
+      'two variable names';
+  } else if (seen.includes('VERCEL')) {
+    hint =
+      'no redis variables reached this deployment. either the database is not connected ' +
+      'to this project, or it was connected after the last build — connecting one does ' +
+      'not redeploy, so redeploy once';
+  } else {
+    hint = 'running outside vercel, so the file store is the right one here';
+  }
+  return { kind: store.kind, durable: store.durable, seen, hint };
+}
+
+/**
  * What the site should show, with the store winning over the build.
  *
  * NEXT_PUBLIC_CONTRACT stays supported and stays the fallback: a deployment

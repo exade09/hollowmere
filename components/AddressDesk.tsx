@@ -30,6 +30,8 @@ type State = {
   store: 'upstash' | 'file';
   durable: boolean;
   updatedAt: number;
+  /** Why the store is the one it is. Names of variables, never values. */
+  diagnosis?: { seen: string[]; hint: string };
 };
 
 const KEY = 'hollowmere.admin.key';
@@ -207,14 +209,24 @@ export default function AddressDesk() {
       </header>
 
       {!state.durable && (
-        <p className="agent-note">
-          There is no key-value store configured, so this desk is writing to a file. That
-          works on a laptop and not on a serverless host, where the filesystem is read-only
-          and the write fails outright. In Vercel: Storage, Create Database, Upstash, Redis
-          — connect it to this project and redeploy. It sets the two variables itself and
-          this line goes away. A Postgres database is not what this needs: the whole store
-          is one string.
-        </p>
+        <>
+          <p className="agent-note">
+            There is no key-value store configured, so this desk is writing to a file. That
+            works on a laptop and not on a serverless host, where the filesystem is read-only
+            and the write fails outright. In Vercel: Storage, Create Database, Upstash, Redis
+            — connect it to this project and redeploy. It sets the two variables itself and
+            this line goes away. A Postgres database is not what this needs: the whole store
+            is one string.
+          </p>
+          {state.diagnosis && (
+            <p className="agent-meta">
+              server sees{' '}
+              <b>{state.diagnosis.seen.length ? state.diagnosis.seen.join(', ') : 'none of them'}</b>
+              {' · '}
+              {state.diagnosis.hint}
+            </p>
+          )}
+        </>
       )}
 
       <article className="agent-card">

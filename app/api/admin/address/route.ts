@@ -6,6 +6,7 @@ import {
   currentAddress,
   getSettingsStore,
   looksLikeAddress,
+  storeDiagnosis,
 } from '@/lib/settings';
 
 /**
@@ -78,6 +79,8 @@ async function state() {
     isAddress: looksLikeAddress(now.text),
     store: store.kind,
     durable: store.durable,
+    // Why it is that store, in names the person at the desk can act on.
+    diagnosis: storeDiagnosis(),
   };
 }
 

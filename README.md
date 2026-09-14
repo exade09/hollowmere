@@ -44,7 +44,7 @@ Then open http://localhost:3000.
 | `NEXT_PUBLIC_SITE_URL` | canonical origin for OG tags | Vercel's production URL |
 | `ADMIN_PASSWORD` | the password for the address desk at `/admin` | the desk refuses everything |
 | `CHAIN_RPC_URL` | JSON-RPC endpoint; without it no token or wallet can be read | the keeper says the stone is quiet |
-| `NEXT_PUBLIC_DEXSCREENER` | chart URL prefix; the live address is appended | `https://dexscreener.com/solana/` |
+| `NEXT_PUBLIC_DEXSCREENER` | optional DexScreener base or `{chain}` template; the live CA selects `robinhood` or `solana` | `https://dexscreener.com` |
 
 Set them in Vercel under *Project → Settings → Environment Variables*. Nothing
 else needs to change: the address appears in three places at once — the bottom

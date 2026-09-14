@@ -9,9 +9,10 @@ import WalletRead from '@/components/WalletRead';
 import WickChat from '@/components/WickChat';
 import { XMark } from '@/components/icons';
 import {
-  ARCHIVE, BRAND, DEXSCREENER, HOARD_NOTE, HOLD, LOCK_GLYPHS, LOCK_ORDER, RITES,
+  ARCHIVE, BRAND, HOARD_NOTE, HOLD, LOCK_GLYPHS, LOCK_ORDER, RITES,
   SOCIALS, SPHERES, TALLY_NOTES, WICK,
 } from '@/lib/content';
+import { dexScreenerUrl } from '@/lib/dexscreener';
 import {
   CANDLE_HOURS, NIGHTS_FOR_KEY, Save, candleState, markBlock, patch, read, todayKey,
 } from '@/lib/save';
@@ -115,8 +116,8 @@ function Sigil({ save, refresh }: { save: Save; refresh: () => void }) {
  */
 function Raven({ save }: { save: Save }) {
   const keyEarned = save.nights >= NIGHTS_FOR_KEY;
-  const { text: ca, isAddress } = useAddress();
-  const chart = isAddress ? `${DEXSCREENER}${ca}` : null;
+  const { text: ca, isAddress, kind } = useAddress();
+  const chart = isAddress ? dexScreenerUrl(ca, kind) : null;
   return (
     <>
       <p className="lead">it goes where i cannot. this is what it brought back.</p>
@@ -126,6 +127,7 @@ function Raven({ save }: { save: Save }) {
           <iframe
             /* Their own embed view: no header, no trade list, just the pair.
                Framing is allowed — checked rather than assumed. */
+            key={chart}
             src={`${chart}?embed=1&theme=dark&info=0&trades=0`}
             title="dexscreener"
             loading="lazy"
