@@ -113,8 +113,9 @@ export async function POST(req: NextRequest) {
     // in front of it nothing at all about what to do.
     const why =
       store.kind === 'file'
-        ? 'this host will not let the site write to a file. set KV_REST_API_URL and ' +
-          'KV_REST_API_TOKEN (Vercel: Storage, KV, Connect) and try again'
+        ? 'this host will not let the site write to a file. add a redis store and try ' +
+          'again (vercel: storage, create database, upstash, redis) — it sets ' +
+          'KV_REST_API_URL and KV_REST_API_TOKEN itself'
         : `the store refused the write: ${String(e).slice(0, 160)}`;
     return NextResponse.json({ error: why, store: store.kind }, { status: 503 });
   }

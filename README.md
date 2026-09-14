@@ -105,12 +105,19 @@ Two things have to be set in Vercel for it to work in production:
 printf '<the password>' | vercel env add ADMIN_PASSWORD production
 ```
 
-and KV, because a serverless filesystem is read-only: with
+and a key-value store, because a serverless filesystem is read-only: with
 `KV_REST_API_URL` and `KV_REST_API_TOKEN` unset the desk writes to
-`.agent/settings.json` and the value vanishes on the next cold start. The desk
-says so on screen when that is the case rather than letting it be discovered
-later. Vercel's KV integration injects both variables; Upstash's own dashboard
-calls them `UPSTASH_REDIS_REST_*` and either pair works.
+`.agent/settings.json`, and on a host like Vercel that write fails outright
+rather than being forgotten later. The desk says so on screen, and the route
+answers with what to do about it rather than throwing.
+
+Vercel no longer has a KV product of its own: it is *Storage, Create Database,
+Upstash, Redis*, connected to the project. That integration sets the two
+variables itself, and `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`
+work just as well — `getSettingsStore` accepts either pair, as do the agent's
+store and the rate limiters. A Postgres database is the wrong shape for this:
+the entire store is one string, and a driver would be a fourth dependency in a
+project that has three.
 
 With `ADMIN_PASSWORD` unset the route refuses everything. Default deny is the
 only sane behaviour for something that changes which address a page tells

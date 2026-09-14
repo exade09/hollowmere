@@ -208,10 +208,12 @@ export default function AddressDesk() {
 
       {!state.durable && (
         <p className="agent-note">
-          There is no KV store configured, so this desk is writing to a file. That works on a
-          laptop and not on a serverless host, where the filesystem is read-only and the write
-          fails outright. Add KV in Vercel — Storage, KV, Connect — which sets
-          KV_REST_API_URL and KV_REST_API_TOKEN for you, and then this line goes away.
+          There is no key-value store configured, so this desk is writing to a file. That
+          works on a laptop and not on a serverless host, where the filesystem is read-only
+          and the write fails outright. In Vercel: Storage, Create Database, Upstash, Redis
+          — connect it to this project and redeploy. It sets the two variables itself and
+          this line goes away. A Postgres database is not what this needs: the whole store
+          is one string.
         </p>
       )}
 
