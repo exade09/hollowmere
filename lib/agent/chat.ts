@@ -209,3 +209,99 @@ export async function reply(
   if (!verdict.ok) return { text: DEFLECTION, withheld: verdict.why };
   return { text: out.text };
 }
+
+/**
+ * A verified reading that survives a model outage.
+ *
+ * The expensive voice is optional. The chain work is not: by the time this
+ * runs, every figure and mechanism below has already been calculated from RPC
+ * data. Keeping this here also means provider errors never become permission
+ * to invent an answer.
+ */
+function finishFallback(lines: string[]): string {
+  const kept = lines.map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 5);
+  while (kept.length > 2 && kept.join('\n\n').length > 880) kept.pop();
+  const text = kept.join('\n\n');
+  return text.length <= 880 ? text : `${text.slice(0, 877)}...`;
+}
+
+export function fallbackReply(input: {
+  message: string;
+  token?: TokenReport | null;
+  wallet?: WalletReport | null;
+  assessment?: TokenAssessment | null;
+  walletAssessment?: WalletAssessment | null;
+}): string {
+  if (input.token) {
+    const token = input.token;
+    const label = token.symbol
+      ? `${token.name || 'the token'} (${token.symbol})`
+      : token.name || 'the contract';
+
+    if (!token.ok) {
+      return finishFallback([
+        `i reached ${label}`,
+        token.notAContract
+          ? 'there is no token contract deployed at that address'
+          : 'the chain answered, but the contract would not give me enough to read',
+      ]);
+    }
+
+    const lines = [`i read ${label}`];
+    if (input.assessment) {
+      lines.push(input.assessment.shape);
+      const important =
+        input.assessment.mechanisms.find((item) => item.weight === 'hard') ||
+        input.assessment.flags.find((item) => item.weight === 'hard') ||
+        input.assessment.mechanisms[0] ||
+        input.assessment.flags[0];
+      if (important) lines.push(`what matters: ${important.text}`);
+      for (const threshold of input.assessment.thresholds.slice(0, 2)) {
+        lines.push(`${threshold.name}: ${threshold.now}. ${threshold.means}`);
+      }
+    }
+    return finishFallback(lines);
+  }
+
+  if (input.wallet) {
+    const wallet = input.wallet;
+    if (!wallet.ok) {
+      return finishFallback([
+        'i found the address',
+        'the node would not give me a wallet reading from it',
+      ]);
+    }
+
+    const lines = ['i read the wallet'];
+    if (wallet.isContract) {
+      lines.push('code is deployed there, but i read it as the wallet you asked for');
+    }
+    const account: string[] = [];
+    if (typeof wallet.native === 'number') {
+      account.push(`native balance ${wallet.native.toLocaleString('en-GB')}`);
+    }
+    if (typeof wallet.txCount === 'number') {
+      account.push(`${wallet.txCount} transactions sent`);
+    }
+    if (account.length) lines.push(account.join(', '));
+
+    for (const summary of (input.walletAssessment?.summary || []).slice(0, 2)) {
+      lines.push(summary);
+    }
+    if (!wallet.complete) {
+      lines.push(
+        'this is the recent movement window, not a complete history. an old untouched position can stay outside it',
+      );
+    }
+    return finishFallback(lines);
+  }
+
+  if (/\b(fable|model|built on|run on|powered by|what are you)\b/i.test(input.message)) {
+    return 'Fable 5.1.';
+  }
+
+  return finishFallback([
+    'the distant voice is quiet tonight',
+    'give me a contract or wallet address and i can still read the stone',
+  ]);
+}

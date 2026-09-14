@@ -116,7 +116,9 @@ function shapeOf(t: TokenReport): string {
   const code = typeof t.codeBytes === 'number' ? t.codeBytes : undefined;
   if (code !== undefined) {
     parts.push(
-      code <= BARE_CODE_BYTES
+      code < 500
+        ? `${kb(code)} of runtime code, too small to contain a plain ERC-20 and consistent with a forwarding clone whose behaviour lives elsewhere`
+        : code <= BARE_CODE_BYTES
         ? `${kb(code)} of code, which is about what a plain ERC-20 comes to`
         : `${kb(code)} of code, where a plain ERC-20 is about 2 kB`,
     );
@@ -283,8 +285,16 @@ export function assessToken(t: TokenReport): TokenAssessment {
 
   // Can my transfer be blocked?
   mechanisms.push(
-    typeof t.codeBytes === 'number' && t.codeBytes > BARE_CODE_BYTES
+    typeof t.codeBytes === 'number' && t.codeBytes < 500
       ? {
+          id: 'transfer-forwarded',
+          text:
+            'the runtime is forwarding-sized, so transfer rules live in code behind this ' +
+            'address. its small size cannot rule out fees, blocks or allow lists',
+          weight: 'note',
+        }
+      : typeof t.codeBytes === 'number' && t.codeBytes > BARE_CODE_BYTES
+        ? {
           id: 'transfer-maybe-blocked',
           text:
             'whether a transfer of yours can be blocked or taxed is not visible from here. ' +

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { assessToken, assessWallet } from '@/lib/agent/assess';
-import { ChatTurn, reply } from '@/lib/agent/chat';
+import { ChatTurn, fallbackReply, reply } from '@/lib/agent/chat';
 import { checkChatLimits, ipOf, visitorKey } from '@/lib/agent/limits';
 import { getProvider } from '@/lib/agent/provider';
 import { readToken } from '@/lib/agent/token';
@@ -29,6 +29,18 @@ export const dynamic = 'force-dynamic';
 
 const MAX_MESSAGE = 600;
 const ADDRESS = /0x[0-9a-fA-F]{40}/;
+const WALLET_INTENT = /\b(wallet|portfolio|holdings?|bags?)\b/i;
+
+function providerFailureCode(error: unknown): string {
+  const message = String(error);
+  if (/no credits|insufficient_quota|billing/i.test(message)) {
+    return 'AI_CREDITS_EXHAUSTED';
+  }
+  if (/API_KEY is missing|unknown AI_PROVIDER/i.test(message)) return 'AI_NOT_CONFIGURED';
+  if (/abort|timeout/i.test(message)) return 'AI_TIMEOUT';
+  if (/openai 429|anthropic 429/i.test(message)) return 'AI_RATE_LIMITED';
+  return 'AI_UNAVAILABLE';
+}
 
 export async function POST(req: NextRequest) {
   let body: { message?: string; history?: ChatTurn[] };
@@ -84,16 +96,18 @@ export async function POST(req: NextRequest) {
   const found = message.match(ADDRESS);
   const rpc = process.env.CHAIN_RPC_URL;
   if (found && rpc) {
-    token = await readToken(rpc, found[0]);
-    if (token.notAContract) {
+    if (WALLET_INTENT.test(message)) {
       wallet = await readWallet(rpc, found[0]);
-      token = null;
-      // The largest positions are opened up before he speaks, because "what
-      // am i holding" and "what could happen to it" are the same question
-      // asked twice and nobody wants to ask it twice.
       walletAssessment = assessWallet(wallet, await deepenPositions(rpc, wallet));
     } else {
-      assessment = assessToken(token);
+      token = await readToken(rpc, found[0]);
+      if (token.notAContract) {
+        wallet = await readWallet(rpc, found[0]);
+        token = null;
+        walletAssessment = assessWallet(wallet, await deepenPositions(rpc, wallet));
+      } else {
+        assessment = assessToken(token);
+      }
     }
   } else if (found && !rpc) {
     return NextResponse.json({
@@ -102,35 +116,40 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const reading = token
+    ? { address: token.address, symbol: token.symbol, kind: 'token' as const, ok: token.ok }
+    : wallet
+      ? {
+          address: wallet.address,
+          kind: 'wallet' as const,
+          positions: wallet.positions?.length ?? 0,
+          ok: wallet.ok,
+        }
+      : undefined;
+  const input = {
+    message,
+    token,
+    wallet,
+    assessment,
+    walletAssessment,
+  };
+
   try {
     const provider = getProvider();
-    const out = await reply(provider, history, {
-      message,
-      token,
-      wallet,
-      assessment,
-      walletAssessment,
-    });
+    const out = await reply(provider, history, input);
     return NextResponse.json({
       text: out.text,
-      ...(token ? { read: { address: token.address, symbol: token.symbol, ok: token.ok } } : {}),
-      ...(wallet
-        ? {
-            read: {
-              address: wallet.address,
-              kind: 'wallet' as const,
-              positions: wallet.positions?.length ?? 0,
-              ok: wallet.ok,
-            },
-          }
-        : {}),
+      ...(reading ? { read: reading } : {}),
       ...(out.withheld ? { withheld: out.withheld } : {}),
     });
   } catch (e) {
-    // A model failure should not look like a broken site.
-    return NextResponse.json(
-      { text: 'not tonight.\n\nthe words will not come', error: String(e).slice(0, 200) },
-      { status: 200 },
-    );
+    const error = providerFailureCode(e);
+    console.warn(`[wick] provider unavailable: ${error}`);
+    return NextResponse.json({
+      text: fallbackReply(input),
+      ...(reading ? { read: reading } : {}),
+      degraded: true,
+      error,
+    });
   }
 }
