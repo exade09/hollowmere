@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Assessment, { TokenAssessment } from '@/components/Assessment';
 
 /**
  * What you hold, read off the chain.
@@ -50,7 +51,7 @@ type Report = {
   delegatedTo?: string;
   native?: number;
   txCount?: number;
-  positionsFrom?: 'explorer' | 'logs';
+  positionsFrom?: 'explorer' | 'logs' | 'known';
   complete?: boolean;
   positionsFound?: number;
   window?: {
@@ -61,6 +62,11 @@ type Report = {
   };
   positions?: Position[];
   note?: string;
+};
+
+type WalletAssessment = {
+  summary: string[];
+  tokens: { token: string; symbol?: string; assessment: TokenAssessment }[];
 };
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
@@ -93,6 +99,7 @@ export default function WalletRead() {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState<'read' | 'connect' | 'ask' | null>(null);
   const [report, setReport] = useState<Report | null>(null);
+  const [assay, setAssay] = useState<WalletAssessment | null>(null);
   const [note, setNote] = useState('');
   const [said, setSaid] = useState('');
 
@@ -127,16 +134,24 @@ export default function WalletRead() {
     setSaid('');
     try {
       const r = await fetch(`/api/wallet?address=${address}`, { cache: 'no-store' });
-      const j = (await r.json()) as { report?: Report; error?: string; note?: string };
+      const j = (await r.json()) as {
+        report?: Report;
+        assessment?: WalletAssessment;
+        error?: string;
+        note?: string;
+      };
       if (!r.ok || !j.report) {
         setReport(null);
+        setAssay(null);
         setNote(j.error === 'slower' ? 'slower. one at a time' : j.error || 'it could not be read');
         return;
       }
       setReport(j.report);
+      setAssay(j.assessment || null);
       if (j.report.note) setNote(j.report.note);
     } catch {
       setReport(null);
+      setAssay(null);
       setNote('the stone is quiet. try again');
     } finally {
       setBusy(null);
@@ -287,7 +302,9 @@ export default function WalletRead() {
                     ? `the chain index — every token held${
                         report.positionsFound ? `, ${report.positionsFound} of them` : ''
                       }`
-                    : 'a node — only what moved in the window'}
+                    : report.positionsFrom === 'known'
+                      ? 'asked token by token — only the ones this place knows by name'
+                      : 'a node — only what moved in the window'}
                 </dd>
               </div>
             )}
@@ -333,6 +350,24 @@ export default function WalletRead() {
             <p className="ledger-note">
               nothing moved in the window, so there is nothing here to name
             </p>
+          )}
+
+          {assay && (assay.summary.length > 0 || assay.tokens.length > 0) && (
+            <div className="assays">
+              <div className="label-sm">what all this is</div>
+              {assay.summary.map((line) => (
+                <p className="assay-sum" key={line}>
+                  {line}
+                </p>
+              ))}
+              {assay.tokens.map((t) => (
+                <Assessment
+                  key={t.token}
+                  title={t.symbol || `the token at ${short(t.token)}`}
+                  assessment={t.assessment}
+                />
+              ))}
+            </div>
           )}
 
           <div className="actions">

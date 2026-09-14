@@ -30,6 +30,7 @@ const SECTIONS: [string, string][] = [
   ['how-to-ask', 'how to ask'],
   ['a-token', 'reading a token'],
   ['a-wallet', 'reading a wallet'],
+  ['getting-out', 'asking about getting out'],
   ['never', 'what he will not do'],
   ['not-have', 'what this does not have'],
   ['the-model', 'the model'],
@@ -230,6 +231,25 @@ export default async function DocsPage() {
           moved cannot be found — the list is what moved recently plus the live balance of
           those tokens, and it is never presented as a complete portfolio.
         </p>
+        <h3>and what each of them is</h3>
+        <p>
+          Balances alone do not tell anybody what they are holding, so the largest few
+          positions are opened up in a second pass: ownership, the upgrade slot, the size of
+          the code, and what the owner address holds of its own supply. Each one then gets
+          the same three blocks as a token asked about directly — its shape, the mechanisms
+          by which it could be taken, and three figures worth watching. Above them sit a few
+          lines about the wallet as a whole: how many positions arrived straight from the
+          zero address as airdrop dust, how many can have their code replaced, how many have
+          renounced ownership.
+        </p>
+        <p>
+          There are no valuations anywhere in it. This project has no price feed, so there is
+          no total, no allocation and no share-of-portfolio: a percentage of a portfolio
+          needs values, and inventing values is worse than having none. Where the index
+          happens to carry a price it is used to decide which positions are worth showing
+          first, and it is never printed.
+        </p>
+
         <h3>connecting a wallet</h3>
         <p>
           Connecting is a convenience for getting forty characters out of an extension. The
@@ -246,6 +266,59 @@ export default async function DocsPage() {
             private key.
           </b>{' '}
           If anything anywhere ever appears to, it is not us.
+        </p>
+      </section>
+
+      <section id="getting-out">
+        <h2>asking about getting out</h2>
+        <p>
+          The most common question, and the one worth being exact about. He will not name a
+          price, name a date, tell you when to sell, tell you whether to sell, or tell you
+          that something is safe to hold. All five are claims about the future and he has
+          none.
+        </p>
+        <p>What he gives instead is, in order, and he gives all of it:</p>
+        <dl className="docs-rows">
+          <div>
+            <dt>the shape of the thing</dt>
+            <dd>
+              What the contract actually is, assembled from its own properties rather than
+              chosen from a list of labels: how much code, whether ownership is renounced or
+              still held, whether an upgrade slot is in use. A label is a grade with a
+              friendly face, so there are no labels.
+            </dd>
+          </div>
+          <div>
+            <dt>how it could be taken from you</dt>
+            <dd>
+              Every mechanism the reading can speak to, each one present, absent, or unknown
+              — and unknown said as unknown. Can the supply grow. Can the code be replaced.
+              Can a transfer of yours be blocked. Is one address holding enough to end it in
+              a single transaction. This is the honest answer to <i>is it safe</i>: safe is a
+              word about the future, and these are words about the code.
+            </dd>
+          </div>
+          <div>
+            <dt>three scenarios</dt>
+            <dd>
+              Three figures that stand at a known value today, each with a sentence about
+              what a change in it would mean — the implementation behind a proxy, the
+              owner&rsquo;s share of supply, how many addresses are still moving it, total
+              supply, and so on, whichever three the reading supports. That is what a
+              threshold is and what a price target is not: it can be read again tomorrow by
+              the same reader that produced it, and it either moved or it did not.
+            </dd>
+          </div>
+        </dl>
+        <p className="docs-gap">
+          Why it stops there, stated once so it does not have to be guessed at: the inputs
+          cannot support a verdict. There is no price feed here, no order book, no liquidity
+          depth and no history beyond a window of blocks, and a score built on that is a
+          guess wearing a number&rsquo;s clothes. The second reason is the heavier one. The
+          moment this site says <i>safe to hold</i>, it is answerable for everybody who read
+          that and lost money, and it would be right to be: a token that is structurally
+          clean today can be emptied tomorrow by something the chain did not announce.
+          Mechanisms are durable facts. Safety is a forecast.
         </p>
       </section>
 

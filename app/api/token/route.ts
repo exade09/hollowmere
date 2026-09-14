@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { assessToken } from '@/lib/agent/assess';
 import { checkTokenLimits, ipOf, visitorKey } from '@/lib/agent/limits';
 import { readToken, tokenFacts } from '@/lib/agent/token';
 
@@ -10,9 +11,12 @@ import { readToken, tokenFacts } from '@/lib/agent/token';
  * reply when the visitor actually asks Wick about them. It also means the
  * numbers on screen are the numbers, not a paraphrase of them.
  *
- * Facts only. No score, no verdict, no flags, nothing that reads as a
- * recommendation — see tokenFacts, which is the entire vocabulary of what this
- * project will say about somebody else's token.
+ * Facts, and what those facts make possible. No score and no verdict: the
+ * assessment names mechanisms — what can mint, what can be replaced, what one
+ * address could do — and sets out three thresholds that stand at a known value
+ * today, so a holder can watch them rather than be told a price. See
+ * tokenFacts and lib/agent/assess.ts, which together are the entire vocabulary
+ * of what this project will say about somebody else's token.
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,5 +45,9 @@ export async function GET(req: NextRequest) {
   }
 
   const report = await readToken(rpc, address);
-  return NextResponse.json({ report, facts: tokenFacts(report) });
+  return NextResponse.json({
+    report,
+    facts: tokenFacts(report),
+    assessment: assessToken(report),
+  });
 }

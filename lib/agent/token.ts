@@ -26,6 +26,20 @@ import { sanitize } from './sanitize';
 const EIP1967_IMPL =
   '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
 
+/**
+ * keccak256("org.zeppelinos.proxy.implementation"), the slot the generation of
+ * proxies before EIP-1967 used — and still the live slot on some of the
+ * largest tokens in circulation.
+ *
+ * It is here because reading only the 1967 slot produced a materially
+ * misleading answer about a real token: USDC came back as "nothing in the
+ * upgrade slot" when its code is in fact replaceable. Verified rather than
+ * copied — reading this slot on USDC returns the implementation address its
+ * proxy is actually pointing at.
+ */
+const ZOS_IMPL =
+  '0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3';
+
 export const SEL = {
   name: '0x06fdde03',
   symbol: '0x95d89b41',
@@ -70,6 +84,8 @@ export type TokenReport = {
    * storage slot would be a statement this cannot support.
    */
   proxyImplementation?: string;
+  /** Which slot the implementation address was found in. */
+  proxyVia?: 'eip1967' | 'zeppelinos';
   /** The owner's own balance as a percentage of supply, when there is an owner. */
   ownerSharePct?: number;
   /** Movement in the recent window. */
@@ -249,10 +265,22 @@ export function scale(raw: bigint, decimals: number): number {
 
 /* --------------------------------------------------------------------- read */
 
+/**
+ * Options for a cheaper reading.
+ *
+ * `contractOnly` skips the log window and the sixty balance calls behind it.
+ * The window is most of the cost of a full read, and when a dozen tokens in
+ * somebody's wallet each need their ownership and their upgrade slot checked,
+ * a dozen full reads is a minute of somebody else's node. The contract facts —
+ * supply, owner, owner's share, code size, proxy slot — are nine calls.
+ */
+export type ReadTokenOptions = { contractOnly?: boolean };
+
 export async function readToken(
   rpcUrl: string,
   address: string,
   windowBlocks = Number(process.env.CHAIN_WINDOW_BLOCKS || 43_200),
+  opts: ReadTokenOptions = {},
 ): Promise<TokenReport> {
   const addr = address.trim().toLowerCase();
   if (!/^0x[0-9a-f]{40}$/.test(addr)) {
@@ -271,9 +299,10 @@ export async function readToken(
         ethCall(addr, SEL.owner),
         { method: 'eth_blockNumber', params: [] },
         { method: 'eth_getStorageAt', params: [addr, EIP1967_IMPL, 'latest'] },
+        { method: 'eth_getStorageAt', params: [addr, ZOS_IMPL, 'latest'] },
       ],
     );
-    const [codeA, nameA, symbolA, decA, supplyA, ownerA, headA, proxyA] = answers;
+    const [codeA, nameA, symbolA, decA, supplyA, ownerA, headA, proxyA, zosA] = answers;
 
     // A node that refused the request has told us nothing about the address.
     // Saying otherwise would be inventing a fact, and this one would be a
@@ -311,11 +340,19 @@ export async function readToken(
     // number, never as a judgement about what the extra code does.
     const codeBytes = Math.max(0, Math.floor((code.length - 2) / 2));
 
-    // The standard proxy slot. Reported only when it holds something, because
-    // an empty slot is not evidence that a contract cannot be upgraded.
+    // Two known proxy slots, the current standard and the one before it.
+    // Reported only when one of them holds something, because an empty slot is
+    // not evidence that a contract cannot be upgraded — a proxy is free to
+    // keep its implementation anywhere, and some do.
     const proxyWord = proxyA.ok ? addressFromWord(proxyA.value) : undefined;
-    const proxyImplementation =
-      proxyWord && proxyWord !== ZERO ? proxyWord : undefined;
+    const zosWord = zosA.ok ? addressFromWord(zosA.value) : undefined;
+    const found =
+      proxyWord && proxyWord !== ZERO
+        ? { at: proxyWord, via: 'eip1967' as const }
+        : zosWord && zosWord !== ZERO
+          ? { at: zosWord, via: 'zeppelinos' as const }
+          : undefined;
+    const proxyImplementation = found?.at;
 
     const report: TokenReport = {
       ok: true,
@@ -328,7 +365,23 @@ export async function readToken(
       ownerRenounced: ownerAddr === undefined ? undefined : ownerAddr === ZERO,
       codeBytes,
       proxyImplementation,
+      proxyVia: found?.via,
     };
+
+    // What the owner holds of its own supply. One call, and the single most
+    // telling figure available without an indexer — so it is read even on a
+    // contract-only pass, where everything below is skipped.
+    if (ownerAddr && ownerAddr !== ZERO && supplyRaw && supplyRaw > BigInt(0)) {
+      const [ownerBal] = await rpcBatch(rpcUrl, [
+        ethCall(addr, SEL.balanceOf + padAddress(ownerAddr)),
+      ]);
+      const v = ownerBal.ok ? hexToBigInt(ownerBal.value) : undefined;
+      if (v !== undefined) {
+        report.ownerSharePct = Math.round(Number((v * BigInt(10_000)) / supplyRaw)) / 100;
+      }
+    }
+
+    if (opts.contractOnly) return report;
 
     // Movement, and concentration among whoever moved.
     const head = Number(hexToBigInt(headHex) ?? BigInt(0));
@@ -413,18 +466,6 @@ export async function readToken(
           Math.round(Number((top * BigInt(10_000)) / supplyRaw) / 100 * 100) / 100;
       }
 
-      // What the owner holds of its own supply. One more call, and the single
-      // most telling figure available without an indexer.
-      if (ownerAddr && ownerAddr !== ZERO && supplyRaw && supplyRaw > BigInt(0)) {
-        const [ownerBal] = await rpcBatch(rpcUrl, [
-          ethCall(addr, SEL.balanceOf + padAddress(ownerAddr)),
-        ]);
-        const v = ownerBal.ok ? hexToBigInt(ownerBal.value) : undefined;
-        if (v !== undefined) {
-          report.ownerSharePct = Math.round(Number((v * BigInt(10_000)) / supplyRaw)) / 100;
-        }
-      }
-
       report.window = window;
     }
 
@@ -457,8 +498,8 @@ export function tokenFacts(t: TokenReport): string[] {
   }
   if (t.proxyImplementation) {
     out.push(
-      `the standard proxy slot holds ${t.proxyImplementation}, so the code behind ` +
-        `this address can be replaced`,
+      `the ${t.proxyVia === 'zeppelinos' ? 'older zeppelinos' : 'standard eip-1967'} proxy ` +
+        `slot holds ${t.proxyImplementation}, so the code behind this address can be replaced`,
     );
   }
   const w = t.window;

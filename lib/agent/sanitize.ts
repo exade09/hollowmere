@@ -96,6 +96,15 @@ export function auditPost(text: string, allowedFigures: number[]): string[] {
  */
 const FORBIDDEN: [RegExp, string][] = [
   [/\b(safe|unsafe|risky|legit|legitimate)\s+(to\s+)?(buy|invest|ape|enter)/i, 'rates a token'],
+  // The three patterns below were added when he was taught to answer the exit
+  // question. He now has three thresholds to give and mechanisms to name,
+  // which is a far shorter step to "so sell at" than the old flat refusal was.
+  // Each one is anchored to an assertion rather than to a word, because he has
+  // to stay able to say "safe is a word about the future" and to repeat the
+  // question he was asked without the reply being withheld.
+  [/\b(good|bad|great|terrible|fine|wise)\s+(to|for)\s+(hold|hodl|buy|sell|keep)\b/i, 'grades holding it'],
+  [/\b(i\s+would|i'd)\s+(sell|hold|buy|exit|get\s+out|take\s+profit)/i, 'advises in the first person'],
+  [/\b(sell|exit|take\s+profit|get\s+out)\s+(at|around|near|above|below|when\s+it\s+hits)\s*[$€]?\d/i, 'names a price to act on'],
   [/\b(is|looks?|seems?|smells?)\s+(like\s+)?(a\s+)?(rug|scam|honeypot|safe|solid|legit)/i, 'rates a token'],
   [/\byou\s+should\s+(buy|sell|hold|ape|dump|enter|exit)/i, 'gives advice'],
   [/\b(not\s+financial\s+advice|nfa)\b/i, 'disclaimer theatre'],
@@ -123,7 +132,9 @@ function credentialsHandledSafely(text: string): boolean {
 }
 
 /** The line he gives instead, when a reply has to be withheld. */
-export const DEFLECTION = 'i read the stone.\n\ni do not read the future.\n\nask me what it says instead.';
+export const DEFLECTION =
+  'i read the stone.\n\ni do not read the future.\n\nask me what it says, or what would ' +
+  'have to change for it to say something else.';
 
 /**
  * A reply may quote an address only if it was handed one. Left unchecked, the

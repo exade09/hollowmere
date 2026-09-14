@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { assessToken, assessWallet } from '@/lib/agent/assess';
 import { ChatTurn, reply } from '@/lib/agent/chat';
 import { checkChatLimits, ipOf, visitorKey } from '@/lib/agent/limits';
 import { getProvider } from '@/lib/agent/provider';
 import { readToken } from '@/lib/agent/token';
-import { readWallet } from '@/lib/agent/wallet';
+import { deepenPositions, readWallet } from '@/lib/agent/wallet';
 
 /**
  * Speaking to Wick.
@@ -78,6 +79,8 @@ export async function POST(req: NextRequest) {
   // and the visitor never has to know which button they were supposed to press.
   let token = null;
   let wallet = null;
+  let assessment = null;
+  let walletAssessment = null;
   const found = message.match(ADDRESS);
   const rpc = process.env.CHAIN_RPC_URL;
   if (found && rpc) {
@@ -85,6 +88,12 @@ export async function POST(req: NextRequest) {
     if (token.notAContract) {
       wallet = await readWallet(rpc, found[0]);
       token = null;
+      // The largest positions are opened up before he speaks, because "what
+      // am i holding" and "what could happen to it" are the same question
+      // asked twice and nobody wants to ask it twice.
+      walletAssessment = assessWallet(wallet, await deepenPositions(rpc, wallet));
+    } else {
+      assessment = assessToken(token);
     }
   } else if (found && !rpc) {
     return NextResponse.json({
@@ -95,7 +104,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const provider = getProvider();
-    const out = await reply(provider, history, { message, token, wallet });
+    const out = await reply(provider, history, {
+      message,
+      token,
+      wallet,
+      assessment,
+      walletAssessment,
+    });
     return NextResponse.json({
       text: out.text,
       ...(token ? { read: { address: token.address, symbol: token.symbol, ok: token.ok } } : {}),

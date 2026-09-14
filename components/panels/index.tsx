@@ -641,7 +641,9 @@ function Ledger() {
   return (
     <>
       <p className="lead">
-        give me an address and i will say what is in it. i will not say what to do with it.
+        give me an address and i will say what is in it, what each of those things can do to
+        you, and the three figures that would tell you it has changed. i will not say what to
+        do with any of it.
       </p>
       <WalletRead />
     </>

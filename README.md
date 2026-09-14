@@ -191,6 +191,13 @@ by running it against a real address rather than by thinking about it:
   address. The first real wallet tested here was exactly that, and calling it a
   contract would have been a false statement about somebody's wallet.
 
+A third reader sits behind both: the tokens this deployment knows by name —
+the project's own contract, always, plus anything in `KNOWN_TOKENS`. It reads
+their balances directly, five calls each. It exists because on a young chain
+both readers above fail at once as the normal case rather than the unlucky one,
+and "do i hold this one, and how much" must not depend on somebody else's index
+being awake.
+
 Connecting MetaMask or Rabby only calls `eth_requestAccounts`. Nothing is
 signed, no transaction is proposed, and no key is involved: it is a way of
 getting forty characters out of an extension, and everything after it is the
@@ -198,6 +205,42 @@ same public read as a pasted address. Wallets are found through EIP-6963 so
 each extension names itself — with both installed, `window.ethereum` is
 whichever won the race to inject, and a button labelled MetaMask would open
 Rabby often enough to be a bug.
+
+## What a reading makes possible
+
+`lib/agent/assess.ts` turns a reading into an account of what could happen to
+it, and the line it holds is the whole design:
+
+- **it names mechanisms.** Can the supply grow. Can the code be replaced. Can a
+  transfer be blocked. Is one address holding enough to end it in a single
+  transaction. Each one present, absent, or unknown — with unknown said as
+  unknown. That is the honest answer to *is it safe*.
+- **it sets three thresholds.** Three figures standing at a known value today,
+  each with a sentence about what a change in it would mean: the implementation
+  behind a proxy, the owner's share of supply, how many addresses are still
+  moving it, total supply. A threshold can be read again tomorrow by the same
+  reader that produced it, which is the test that separates it from a forecast.
+- **it does not grade.** No score, no safe, no risky, no good to hold, no
+  verdict on whether to sell. Two reasons, and the second is load-bearing.
+  There is no price feed, no order book and no depth here, so a score built on
+  this would be a guess wearing a number's clothes — and the moment the site
+  says *safe to hold*, it is answerable for everyone who read that and lost
+  money. Mechanisms are durable facts; safety is a forecast.
+
+The keeper's prompt has a section on the exit question, because it is the one
+he is asked most and a flat refusal was the wrong answer to it: he gives the
+three scenarios and the mechanisms, in full, and declines the number. The audit
+in `sanitize.ts` then checks the reply for the three ways that answer drifts
+into advice — grading the hold, advising in the first person, and naming a
+price to act on — because a rule in a prompt is a request and this one is a
+gate.
+
+Two things in the reader feed it, and both were found by running it against a
+real contract: the **pre-1967 proxy slot** is read as well as the standard one,
+because reading only the standard slot reported USDC as having nothing in its
+upgrade slot when its code is in fact replaceable; and `readToken` grew a
+`contractOnly` mode, nine calls with no log window, so a dozen positions in a
+wallet can each be opened up without spending a minute of somebody's node.
 
 ## The manual
 

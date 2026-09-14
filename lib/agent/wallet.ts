@@ -38,14 +38,17 @@
  */
 import {
   Call,
+  ReadTokenOptions,
   SEL,
   TRANSFER_TOPIC,
+  TokenReport,
   ZERO,
   addressFromTopic,
   decodeString,
   ethCall,
   hexToBigInt,
   padAddress,
+  readToken,
   rpcBatch,
   scale,
 } from './token';
@@ -105,7 +108,7 @@ export type WalletReport = {
   /** Transactions ever sent from this address. The nonce, in other words. */
   txCount?: number;
   /** Which reader produced the positions below. */
-  positionsFrom?: 'explorer' | 'logs';
+  positionsFrom?: 'explorer' | 'logs' | 'known';
   /** True only when an indexer answered, which is the only complete answer. */
   complete?: boolean;
   /** Positions found before the cap was applied. */
@@ -192,7 +195,17 @@ async function batched(url: string, calls: Call[]) {
  */
 let explorerClosedUntil = 0;
 const EXPLORER_SHUT_MS = 10 * 60_000;
-const EXPLORER_TIMEOUT_MS = 6_000;
+/**
+ * Eight seconds, and not more, for a reason worth writing down.
+ *
+ * This endpoint has no pagination: it answers with every token row a wallet
+ * has, and an eight-year-old address on a mature chain came back with 3.3 MB
+ * of json after twenty seconds. Waiting twenty seconds to render is worse than
+ * rendering the node's answer in two, so the budget is short and the fall
+ * through is expected rather than exceptional. On a young chain — which is the
+ * one this project is on — the same request is small and quick.
+ */
+const EXPLORER_TIMEOUT_MS = 8_000;
 
 type BlockscoutBalance = {
   value?: string;
@@ -235,6 +248,8 @@ async function positionsFromExplorer(addr: string): Promise<Position[] | null> {
       signal: ctl.signal,
     });
     if (!r.ok) {
+      // A refusal is a door: it will still be shut in a minute, so stop
+      // knocking. Only an actual refusal gets cached that way.
       explorerClosedUntil = Date.now() + EXPLORER_SHUT_MS;
       return null;
     }
@@ -273,11 +288,88 @@ async function positionsFromExplorer(addr: string): Promise<Position[] | null> {
     }
     return out;
   } catch {
-    explorerClosedUntil = Date.now() + EXPLORER_SHUT_MS;
+    // A timeout is a slow index, not a closed one, and caching it as closed
+    // punishes everybody who arrives in the next ten minutes with the worse
+    // of the two readings. Held off briefly and tried again.
+    explorerClosedUntil = Date.now() + 30_000;
     return null;
   } finally {
     clearTimeout(t);
   }
+}
+
+/* -------------------------------------------------------- the tokens we know */
+
+/**
+ * The tokens this deployment cares about by name.
+ *
+ * Both readers above can fail at once, and on a young chain that is the likely
+ * case rather than the unlucky one: no index answering a server, and a hosted
+ * node that refuses a logs query without a contract address in it. The
+ * reading that survives both is the dullest one — ask the token directly what
+ * this wallet's balance is — and it needs to know which tokens to ask.
+ *
+ * The project's own contract is always in the list, because "do i hold this
+ * one, and how much" is the question the site exists to answer and it must
+ * never depend on somebody else's index being awake. KNOWN_TOKENS adds any
+ * others worth always checking, comma separated.
+ */
+function knownTokens(): string[] {
+  const raw = [
+    process.env.NEXT_PUBLIC_CONTRACT || '',
+    ...(process.env.KNOWN_TOKENS || '').split(','),
+  ];
+  const out: string[] = [];
+  for (const t of raw) {
+    const a = t.trim().toLowerCase();
+    if (/^0x[0-9a-f]{40}$/.test(a) && !out.includes(a)) out.push(a);
+  }
+  return out;
+}
+
+/**
+ * Balances for a fixed list of contracts. Five calls each, no discovery, no
+ * index, and nothing that a node can refuse: this works wherever an rpc
+ * endpoint works at all. Positions with no balance are dropped.
+ */
+async function positionsFromKnown(
+  rpcUrl: string,
+  addr: string,
+  tokens: string[],
+): Promise<Position[]> {
+  if (!tokens.length) return [];
+  const calls: Call[] = [];
+  for (const token of tokens) {
+    calls.push(ethCall(token, SEL.balanceOf + padAddress(addr)));
+    calls.push(ethCall(token, SEL.decimals));
+    calls.push(ethCall(token, SEL.symbol));
+    calls.push(ethCall(token, SEL.name));
+    calls.push(ethCall(token, SEL.totalSupply));
+  }
+  const answers = await batched(rpcUrl, calls);
+
+  const out: Position[] = [];
+  tokens.forEach((token, i) => {
+    const [balanceA, decA, symA, nameA, supplyA] = answers.slice(i * 5, i * 5 + 5);
+    const rawBalance = balanceA.ok ? hexToBigInt(balanceA.value) : undefined;
+    if (rawBalance === undefined || rawBalance === BigInt(0)) return;
+    const decimals = Number(hexToBigInt(decA.ok ? decA.value : undefined) ?? BigInt(18));
+    const dec = Number.isFinite(decimals) && decimals >= 0 && decimals <= 36 ? decimals : 18;
+    const rawSupply = supplyA.ok ? hexToBigInt(supplyA.value) : undefined;
+    const symbol = symA.ok ? decodeString(symA.value) : undefined;
+    const name = nameA.ok ? decodeString(nameA.value) : undefined;
+    out.push({
+      token,
+      name: name ? sanitize(name, 48) : undefined,
+      symbol: symbol ? sanitize(symbol, 16) : undefined,
+      decimals: dec,
+      balance: scale(rawBalance, dec),
+      sharePct: sharePct(rawBalance, rawSupply),
+      received: 0,
+      sent: 0,
+    });
+  });
+  return out;
 }
 
 /* ------------------------------------------------------------------- reading */
@@ -323,6 +415,15 @@ export async function readWallet(
       delegatedTo: delegated,
     };
 
+    // The tokens this deployment always asks about, read directly. Five calls
+    // for one contract, and it means the site's own token can never be missing
+    // from a reading because an index was asleep.
+    const known = await positionsFromKnown(rpcUrl, addr, knownTokens());
+    const merge = (found: Position[]): Position[] => {
+      const have = new Set(found.map((p) => p.token));
+      return [...known.filter((k) => !have.has(k.token)), ...found];
+    };
+
     // The complete answer, if anybody will give it to us.
     const indexed = await positionsFromExplorer(addr);
     if (indexed) {
@@ -341,7 +442,7 @@ export async function readWallet(
       report.positionsFrom = 'explorer';
       report.complete = true;
       report.positionsFound = indexed.length;
-      report.positions = indexed.slice(0, MAX_EXPLORER_TOKENS);
+      report.positions = merge(indexed.slice(0, MAX_EXPLORER_TOKENS));
       return report;
     }
 
@@ -379,10 +480,17 @@ export async function readWallet(
     const outgoing = outA.ok && Array.isArray(outA.value) ? (outA.value as WalletLog[]) : [];
 
     if (!inA.ok && !outA.ok) {
+      // Neither an index nor a scan. What is left is the list of tokens this
+      // deployment knows by name, which is the one reading that cannot be
+      // refused — and on this project's own chain it is the one that matters.
+      report.positionsFrom = 'known';
+      report.complete = false;
+      report.positions = known;
+      report.positionsFound = known.length;
       report.note =
-        `no index answered and this node will not scan for tokens ` +
-        `(${String(inA.error || outA.error).slice(0, 110)}). ` +
-        `the balances above are real; the positions could not be discovered from here`;
+        `no index answered and this node will not scan for tokens without a contract ` +
+        `address, so only the tokens this site knows by name were checked. ` +
+        `there may be others in here that i cannot see from where i am standing`;
       return report;
     }
 
@@ -445,7 +553,7 @@ export async function readWallet(
     };
 
     if (!take.length) {
-      report.positions = [];
+      report.positions = known;
       return report;
     }
 
@@ -500,7 +608,7 @@ export async function readWallet(
       );
     });
 
-    report.positions = positions;
+    report.positions = merge(positions);
     return report;
   } catch (e) {
     return { ok: false, address: addr, note: `could not read it: ${String(e).slice(0, 140)}` };
@@ -604,6 +712,11 @@ export function walletFacts(w: WalletReport, maxPositions = 8): string[] {
     out.push(
       'this came from the chain index, so it is every token the address holds, not a sample',
     );
+  } else if (w.positionsFrom === 'known') {
+    out.push(
+      'only the tokens this site knows by name could be checked, so this is not a list of ' +
+        'everything in the wallet and must not be read as one',
+    );
   } else if (w.positionsFrom === 'logs') {
     out.push(
       'no index answered, so this was read from a node: what moved in the window plus the ' +
@@ -613,6 +726,42 @@ export function walletFacts(w: WalletReport, maxPositions = 8): string[] {
   }
   if (w.note) out.push(w.note);
   return out;
+}
+
+/**
+ * Opening up the largest positions.
+ *
+ * A balance on its own does not tell a holder what they are holding. Whether
+ * the thing can mint, whether its code can be swapped, whether one address
+ * holds most of it — those are contract facts, and they take a second read per
+ * token. So the biggest few are read properly and the tail is left as
+ * balances, which is the trade every wallet page makes and the only one that
+ * keeps a reading inside a few seconds.
+ *
+ * Contract-only reads: no log window, no sixty balance calls. Nine calls each.
+ * Failures are dropped rather than reported — a position that could not be
+ * opened is still a position, and the list says how many were.
+ */
+export async function deepenPositions(
+  rpcUrl: string,
+  report: WalletReport,
+  max = Number(process.env.WALLET_DEEP_TOKENS || 5),
+): Promise<{ position: Position; token: TokenReport }[]> {
+  const held = (report.positions || []).filter((p) => (p.balance || 0) > 0).slice(0, max);
+  if (!held.length) return [];
+
+  const opts: ReadTokenOptions = { contractOnly: true };
+  const reads = await Promise.all(
+    held.map(async (position) => {
+      try {
+        const token = await readToken(rpcUrl, position.token, undefined, opts);
+        return token.ok && !token.notAContract ? { position, token } : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return reads.filter((r): r is { position: Position; token: TokenReport } => r !== null);
 }
 
 /** Every address the reading handed over, so a reply may name them. */
