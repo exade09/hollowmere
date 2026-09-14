@@ -33,6 +33,148 @@
   --bevel: inset 0 1px 0 rgba(232, 227, 214, .07), inset 0 -1px 0 rgba(0, 0, 0, .5);
 }
 
+/* ---------------------------------------------------------- launch cover */
+.coming-soon {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 28px;
+  text-align: center;
+  background:
+    linear-gradient(180deg, rgba(8, 7, 12, .72), rgba(8, 7, 12, .93)),
+    radial-gradient(circle at 50% 40%, rgba(79, 214, 196, .08), transparent 42%),
+    url(/clips/sanctum/poster/00_idle.jpg) center / cover no-repeat;
+}
+
+.coming-soon::before {
+  content: '';
+  position: absolute;
+  inset: 18px;
+  z-index: -1;
+  pointer-events: none;
+  clip-path: var(--cut-lg);
+  border: 1px solid rgba(154, 147, 164, .16);
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, .32);
+}
+
+.coming-soon-glow {
+  position: absolute;
+  z-index: -1;
+  width: min(600px, 90vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 214, 196, .09), transparent 66%);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.coming-soon-card {
+  width: min(590px, 100%);
+  padding: clamp(34px, 6vw, 62px) clamp(24px, 7vw, 72px);
+  clip-path: var(--cut-lg);
+  background:
+    linear-gradient(155deg, rgba(43, 39, 52, .92), rgba(15, 13, 21, .96) 30% 75%, rgba(28, 24, 37, .94));
+  box-shadow: var(--bevel), 0 28px 90px rgba(0, 0, 0, .48);
+  backdrop-filter: blur(8px);
+}
+
+.coming-soon-logo-frame {
+  width: clamp(116px, 24vw, 154px);
+  aspect-ratio: 1;
+  margin: 0 auto 26px;
+  padding: 7px;
+  clip-path: var(--cut-md);
+  background: linear-gradient(145deg, rgba(232, 227, 214, .5), rgba(79, 214, 196, .18) 52%, rgba(20, 18, 27, .9));
+  filter: drop-shadow(0 15px 24px rgba(0, 0, 0, .48));
+}
+
+.coming-soon-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  clip-path: var(--cut-md);
+}
+
+.coming-soon-kicker,
+.coming-soon-follow {
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  color: var(--spectre);
+}
+
+.coming-soon-kicker { font-size: 10px; }
+
+.coming-soon h1 {
+  margin: 8px 0 20px;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(38px, 8vw, 68px);
+  font-weight: 600;
+  line-height: .9;
+  letter-spacing: .035em;
+}
+
+.coming-soon-copy {
+  margin: 0;
+  color: var(--bone);
+  font-size: clamp(18px, 4vw, 24px);
+  line-height: 1.25;
+}
+
+.coming-soon-word {
+  margin: 12px 0 22px;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(46px, 11vw, 84px);
+  font-weight: 600;
+  line-height: .85;
+  letter-spacing: .08em;
+  color: var(--ember);
+  text-transform: lowercase;
+}
+
+.coming-soon-follow {
+  margin-bottom: 16px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.coming-soon-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 174px;
+  padding: 13px 24px;
+  clip-path: var(--cut-sm);
+  border: 0;
+  background: rgba(79, 214, 196, .12);
+  box-shadow: inset 0 0 0 1px rgba(79, 214, 196, .4), var(--bevel);
+  color: var(--spectre);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: .12em;
+  transition: color .18s ease, background .18s ease, transform .18s ease;
+}
+
+.coming-soon-x:hover {
+  border-bottom-color: transparent;
+  background: rgba(79, 214, 196, .2);
+  color: var(--bone);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 520px) {
+  .coming-soon { padding: 16px; }
+  .coming-soon::before { inset: 9px; }
+  .coming-soon-card { padding-block: 32px; }
+  .coming-soon-logo-frame { margin-bottom: 20px; }
+}
+
 * { box-sizing: border-box; }
 
 html, body {

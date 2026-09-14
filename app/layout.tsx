@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Grenze, Alegreya_Sans, IBM_Plex_Mono } from 'next/font/google';
+import ComingSoon from '@/components/ComingSoon';
 import { ACCOUNT, BRAND } from '@/lib/content';
 import './globals.css';
 
@@ -57,9 +58,12 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const flag = (process.env.SITE_COMING_SOON || 'true').trim().toLowerCase();
+  const comingSoon = !['false', '0', 'off', 'no'].includes(flag);
+
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>{comingSoon ? <ComingSoon /> : children}</body>
     </html>
   );
 }
