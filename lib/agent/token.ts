@@ -18,6 +18,7 @@
  * Anything else would be a number that sounds precise and is not.
  */
 import { sanitize } from './sanitize';
+import { HolderSnapshot, MarketSnapshot, readMarketContext } from './market';
 
 /**
  * keccak256("eip1967.proxy.implementation") - 1, the slot the standard puts an
@@ -88,6 +89,10 @@ export type TokenReport = {
   proxyVia?: 'eip1967' | 'zeppelinos';
   /** The owner's own balance as a percentage of supply, when there is an owner. */
   ownerSharePct?: number;
+  /** Indexed holder distribution, when Blockscout answers. */
+  holders?: HolderSnapshot;
+  /** Strongest Robinhood Chain market indexed by DexScreener. */
+  market?: MarketSnapshot;
   /** Movement in the recent window. */
   window?: {
     blocks: number;
@@ -110,6 +115,16 @@ export type TokenReport = {
      */
     topActiveSharePct?: number;
     activeAddressesChecked?: number;
+    /** Active addresses whose current balance is still above zero. */
+    activeAddressesStillHolding?: number;
+    /** Largest net sellers whose current balance and code were checked. */
+    largeOutflowAddressesChecked?: number;
+    /** Net sellers that moved at least 0.5% of supply out in this window. */
+    largeNetOutflowAddresses?: number;
+    /** Those large net sellers now holding no more than 0.1% of supply. */
+    largeExitAddresses?: number;
+    /** Largest net outflow by one non-contract address, as a share of supply. */
+    largestNetOutflowPct?: number;
   };
   note?: string;
 };
@@ -382,6 +397,7 @@ export async function readToken(
     }
 
     if (opts.contractOnly) return report;
+    const marketContext = readMarketContext(addr, supplyRaw);
 
     // Movement, and concentration among whoever moved.
     const head = Number(hexToBigInt(headHex) ?? BigInt(0));
@@ -401,11 +417,24 @@ export async function readToken(
         },
       ]);
       type TransferLog = { topics?: string[]; data?: string; blockNumber?: string };
-      const logs =
-        logsA.ok && Array.isArray(logsA.value) ? (logsA.value as TransferLog[]) : [];
+      if (!logsA.ok || !Array.isArray(logsA.value)) {
+        Object.assign(report, await marketContext);
+        report.note =
+          'the node would not return the transfer window, so holder and market data remain but recent exits are unknown';
+        return report;
+      }
+      const logs = logsA.value as TransferLog[];
 
       const senders = new Set<string>();
       const receivers = new Set<string>();
+      type Flow = { received: bigint; sent: bigint };
+      const flows = new Map<string, Flow>();
+      const flowFor = (address: string): Flow => {
+        const current = flows.get(address) || { received: BigInt(0), sent: BigInt(0) };
+        flows.set(address, current);
+        return current;
+      };
+
       let mints = 0;
       let burns = 0;
       let largestRaw = BigInt(0);
@@ -425,7 +454,11 @@ export async function readToken(
         if (fromAddr === ZERO) mints += 1;
         if (toAddr === ZERO) burns += 1;
         const v = hexToBigInt(l.data);
-        if (v !== undefined && v > largestRaw) largestRaw = v;
+        if (v !== undefined) {
+          if (fromAddr !== ZERO) flowFor(fromAddr).sent += v;
+          if (toAddr !== ZERO) flowFor(toAddr).received += v;
+          if (v > largestRaw) largestRaw = v;
+        }
         const b = Number(hexToBigInt(l.blockNumber) ?? BigInt(0));
         if (b > 0) {
           if (firstBlock === undefined || b < firstBlock) firstBlock = b;
@@ -447,8 +480,13 @@ export async function readToken(
 
       // Balances of the active addresses, batched. Capped: this is a flavour of
       // concentration, not a census, and it must not turn into 500 calls.
-      const active = [...new Set([...receivers, ...senders])]
-        .filter((a) => a !== ZERO)
+      const active = [...flows.entries()]
+        .sort((a, b) => {
+          const aGross = a[1].received + a[1].sent;
+          const bGross = b[1].received + b[1].sent;
+          return bGross > aGross ? 1 : bGross < aGross ? -1 : 0;
+        })
+        .map(([address]) => address)
         .slice(0, 60);
       if (active.length && supplyRaw && supplyRaw > BigInt(0)) {
         const balances = await rpcBatch(
@@ -456,18 +494,71 @@ export async function readToken(
           active.map((a) => ethCall(addr, SEL.balanceOf + padAddress(a))),
         );
         let top = BigInt(0);
+        let stillHolding = 0;
         for (const b of balances) {
           if (!b.ok) continue;
           const v = hexToBigInt(b.value);
-          if (v !== undefined && v > top) top = v;
+          if (v !== undefined) {
+            if (v > BigInt(0)) stillHolding += 1;
+            if (v > top) top = v;
+          }
         }
         window.activeAddressesChecked = active.length;
         window.topActiveSharePct =
           Math.round(Number((top * BigInt(10_000)) / supplyRaw) / 100 * 100) / 100;
+        window.activeAddressesStillHolding = stillHolding;
+      }
+      if (supplyRaw && supplyRaw > BigInt(0)) {
+        const netSellers = [...flows.entries()]
+          .map(([address, flow]) => ({
+            address,
+            netOut: flow.sent > flow.received ? flow.sent - flow.received : BigInt(0),
+          }))
+          .filter((seller) => seller.netOut > BigInt(0))
+          .sort((a, b) => (b.netOut > a.netOut ? 1 : b.netOut < a.netOut ? -1 : 0))
+          .slice(0, 40);
+
+        if (netSellers.length) {
+          const checks = await rpcBatch(
+            rpcUrl,
+            netSellers.flatMap((seller) => [
+              ethCall(addr, SEL.balanceOf + padAddress(seller.address)),
+              { method: 'eth_getCode', params: [seller.address, 'latest'] },
+            ]),
+          );
+          let large = 0;
+          let exited = 0;
+          let largest = BigInt(0);
+
+          netSellers.forEach((seller, index) => {
+            const balanceAnswer = checks[index * 2];
+            const codeAnswer = checks[index * 2 + 1];
+            const balance = balanceAnswer?.ok ? hexToBigInt(balanceAnswer.value) : undefined;
+            const code = codeAnswer?.ok && typeof codeAnswer.value === 'string' ? codeAnswer.value : '';
+            const delegatedWallet = /^0xef0100[0-9a-f]{40}$/i.test(code);
+            const isEoa = codeAnswer?.ok && (code === '0x' || code === '0x0' || delegatedWallet);
+            if (!isEoa || balance === undefined) return;
+
+            if (seller.netOut > largest) largest = seller.netOut;
+            if (seller.netOut * BigInt(200) >= supplyRaw) {
+              large += 1;
+              if (balance * BigInt(1_000) <= supplyRaw) exited += 1;
+            }
+          });
+
+          window.largeOutflowAddressesChecked = netSellers.length;
+          window.largeNetOutflowAddresses = large;
+          window.largeExitAddresses = exited;
+          if (largest > BigInt(0)) {
+            window.largestNetOutflowPct =
+              Math.round(Number((largest * BigInt(100_000)) / supplyRaw)) / 1_000;
+          }
+        }
       }
 
       report.window = window;
     }
+    Object.assign(report, await marketContext);
 
     return report;
   } catch (e) {
@@ -484,12 +575,17 @@ export function tokenFacts(t: TokenReport): string[] {
   if (!t.ok) return [];
   if (t.notAContract) return ['nothing is deployed at that address'];
   const out: string[] = [];
+
   if (t.name) out.push(`name on the contract: ${t.name}`);
   if (t.symbol) out.push(`symbol on the contract: ${t.symbol}`);
-  if (typeof t.supply === 'number') out.push(`total supply: ${t.supply.toLocaleString('en-GB')}`);
+  if (typeof t.supply === 'number') {
+    out.push(`total supply: ${t.supply.toLocaleString('en-GB')}`);
+  }
   if (t.ownerRenounced === true) out.push('ownership is renounced (owner is the zero address)');
   if (t.ownerRenounced === false) out.push(`ownership is still held by ${t.owner}`);
-  if (t.owner === undefined) out.push('the contract exposes no owner function, which is not the same as renounced');
+  if (t.owner === undefined) {
+    out.push('the contract exposes no owner function, which is not the same as renounced');
+  }
   if (typeof t.ownerSharePct === 'number') {
     out.push(`the owner address holds ${t.ownerSharePct}% of supply`);
   }
@@ -502,15 +598,65 @@ export function tokenFacts(t: TokenReport): string[] {
         `slot holds ${t.proxyImplementation}, so the code behind this address can be replaced`,
     );
   }
+
+  const holders = t.holders;
+  if (holders) {
+    if (typeof holders.count === 'number') {
+      out.push(`current holder addresses reported by Blockscout: ${holders.count}`);
+    }
+    if (typeof holders.topEoaSharePct === 'number') {
+      out.push(`largest externally-owned holder: ${holders.topEoaSharePct}% of supply`);
+    }
+    if (typeof holders.topTenEoaSharePct === 'number') {
+      out.push(
+        `top ten externally-owned holders together: ${holders.topTenEoaSharePct}% of supply`,
+      );
+    }
+    if (typeof holders.eoaHoldersAtLeastOnePct === 'number') {
+      out.push(
+        `externally-owned holders with at least 1% of supply in the indexed top page: ${holders.eoaHoldersAtLeastOnePct}`,
+      );
+    }
+  }
+
   const w = t.window;
   if (w) {
     out.push(`transfers in the last ${w.blocks} blocks: ${w.transfers}`);
     out.push(`distinct addresses receiving in that window: ${w.receivers}`);
     out.push(`distinct addresses sending in that window: ${w.senders}`);
-    if (typeof w.mints === 'number') out.push(`tokens created inside that window: ${w.mints} mints`);
-    if (typeof w.burns === 'number') out.push(`tokens destroyed inside that window: ${w.burns} burns`);
+    if (
+      typeof w.activeAddressesStillHolding === 'number' &&
+      typeof w.activeAddressesChecked === 'number'
+    ) {
+      out.push(
+        `active addresses still holding a non-zero balance: ${w.activeAddressesStillHolding} of ${w.activeAddressesChecked} checked`,
+      );
+    }
+    if (typeof w.largeNetOutflowAddresses === 'number') {
+      out.push(
+        `non-contract addresses with net outflow of at least 0.5% of supply in the window: ${w.largeNetOutflowAddresses}`,
+      );
+    }
+    if (typeof w.largeExitAddresses === 'number') {
+      out.push(
+        `large net-outflow addresses now holding no more than 0.1% of supply: ${w.largeExitAddresses}; these are addresses, not identified people`,
+      );
+    }
+    if (typeof w.largestNetOutflowPct === 'number') {
+      out.push(
+        `largest net outflow by one non-contract address: ${w.largestNetOutflowPct}% of supply`,
+      );
+    }
+    if (typeof w.mints === 'number') {
+      out.push(`tokens created inside that window: ${w.mints} mints`);
+    }
+    if (typeof w.burns === 'number') {
+      out.push(`tokens destroyed inside that window: ${w.burns} burns`);
+    }
     if (typeof w.largestTransfer === 'number') {
-      out.push(`largest single transfer in that window: ${w.largestTransfer.toLocaleString('en-GB')}`);
+      out.push(
+        `largest single transfer in that window: ${w.largestTransfer.toLocaleString('en-GB')}`,
+      );
     }
     if (typeof w.firstBlock === 'number' && typeof w.lastBlock === 'number') {
       out.push(`transfers span blocks ${w.firstBlock} to ${w.lastBlock}`);
@@ -518,10 +664,41 @@ export function tokenFacts(t: TokenReport): string[] {
     if (typeof w.topActiveSharePct === 'number') {
       out.push(
         `largest balance among the ${w.activeAddressesChecked} addresses active in that window: ` +
-          `${w.topActiveSharePct}% of supply. This is not the largest holder overall, and ` +
-          `an rpc node cannot see holders that did not move.`,
+          `${w.topActiveSharePct}% of supply. this is not the largest holder overall`,
       );
     }
   }
+
+  const market = t.market;
+  if (market) {
+    out.push(
+      `strongest DexScreener market: ${market.dexId || 'unknown dex'} against ${market.quoteSymbol || 'its quote token'}`,
+    );
+    if (typeof market.liquidityUsd === 'number') {
+      out.push(`current liquidity in that pair: $${market.liquidityUsd.toLocaleString('en-US')}`);
+    }
+    if (typeof market.volume24hUsd === 'number') {
+      out.push(`24 hour volume in that pair: $${market.volume24hUsd.toLocaleString('en-US')}`);
+    }
+    if (typeof market.buys24h === 'number' && typeof market.sells24h === 'number') {
+      out.push(`24 hour trades: ${market.buys24h} buys and ${market.sells24h} sells`);
+    }
+    if (typeof market.priceChange24hPct === 'number') {
+      out.push(`24 hour price change: ${market.priceChange24hPct}%`);
+    }
+    if (typeof market.marketCapUsd === 'number') {
+      out.push(
+        `current market cap reported by DexScreener: $${market.marketCapUsd.toLocaleString('en-US')}`,
+      );
+    } else if (typeof market.fdvUsd === 'number') {
+      out.push(
+        `current fully diluted value reported by DexScreener: $${market.fdvUsd.toLocaleString('en-US')}`,
+      );
+    }
+    if (typeof market.pairAgeHours === 'number') {
+      out.push(`age of that market pair: ${market.pairAgeHours} hours`);
+    }
+  }
+
   return out;
 }

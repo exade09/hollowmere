@@ -147,6 +147,7 @@ export const DEFLECTION =
 export function auditReply(
   text: string,
   allowedAddresses: string[] = [],
+  maxLength = 900,
 ): { ok: boolean; why?: string } {
   for (const [re, why] of FORBIDDEN) {
     if (re.test(text)) return { ok: false, why };
@@ -161,6 +162,6 @@ export function auditReply(
   if (!credentialsHandledSafely(text)) {
     return { ok: false, why: 'raises credentials without a negation in the same sentence' };
   }
-  if (text.length > 900) return { ok: false, why: 'too long for him' };
+  if (text.length > maxLength) return { ok: false, why: 'too long for him' };
   return { ok: true };
 }
