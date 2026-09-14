@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Panel from '@/components/Panel';
-import Dispatches from '@/components/Dispatches';
 import KeepTheFire from '@/components/games/KeepTheFire';
 import Pairs from '@/components/games/Pairs';
 import Slab from '@/components/games/Slab';
@@ -41,7 +40,7 @@ function Sigil({ save, refresh }: { save: Save; refresh: () => void }) {
   const [copied, setCopied] = useState(false);
   // The field is free text: before there is an address it may hold a word like
   // TBA, and a word is not something to copy or to look up on an explorer.
-  const { text: ca, isAddress } = useAddress();
+  const { text: ca, isAddress, kind } = useAddress();
 
   const copy = async () => {
     if (!isAddress) return;
@@ -71,7 +70,9 @@ function Sigil({ save, refresh }: { save: Save; refresh: () => void }) {
         <div className="row">
           <dt>ledger</dt>
           <dd>
-            {BRAND.explorer && isAddress ? (
+            {/* The explorer in BRAND is a chain-specific one, so it is only
+                offered for an address that chain could hold. */}
+            {BRAND.explorer && kind === 'evm' ? (
               <a href={`${BRAND.explorer}${ca}`} target="_blank" rel="noreferrer">
                 watch what moves
               </a>
@@ -99,36 +100,50 @@ function Sigil({ save, refresh }: { save: Save; refresh: () => void }) {
 /* -------------------------------------------------- the raven: word outside */
 
 /**
- * Word from outside: the dispatches, where to find the account, and the pair
- * of pages that show what the token is doing.
+ * Word from outside: the chart, and where to find us.
  *
- * The chart link is built from the live address rather than written down, so
- * it appears the moment the desk at /admin writes one and points at the right
- * token by construction. While the field holds a word rather than an address
- * — TBA, SOON — there is no link, because a chart URL ending in the word SOON
- * is a dead page with our name on it.
+ * The chart stands where the raven's own notes used to. Those notes were
+ * written in advance and said nothing a visitor could not guess; the market is
+ * the actual word from outside, it changes on its own, and this is the widget
+ * a person opens wanting to know what is happening right now.
+ *
+ * The address is not written down anywhere here: the URL is built from the
+ * live value, so the chart appears the moment the desk at /admin writes one and
+ * points at the right token by construction. While the field holds a word
+ * rather than an address — TBA, SOON — there is no frame at all, because
+ * /solana/SOON is a dead page with our name on it.
  */
 function Raven({ save }: { save: Save }) {
   const keyEarned = save.nights >= NIGHTS_FOR_KEY;
   const { text: ca, isAddress } = useAddress();
+  const chart = isAddress ? `${DEXSCREENER}${ca}` : null;
   return (
     <>
-      <p className="lead">it goes where i cannot. it comes back with scraps.</p>
-      <Dispatches />
-      <dl className="rows">
-        <div className="row">
-          <dt>dexscreener</dt>
-          <dd>
-            {isAddress ? (
-              <a href={`${DEXSCREENER}${ca}`} target="_blank" rel="noreferrer">
-                {`${DEXSCREENER}${ca}`.replace('https://', '')}
-              </a>
-            ) : (
-              <span className="dim">nothing to chart until the address is spoken</span>
-            )}
-            <div className="dim" style={{ fontSize: 13 }}>what the market makes of it</div>
-          </dd>
+      <p className="lead">it goes where i cannot. this is what it brought back.</p>
+
+      {chart ? (
+        <div className="chart">
+          <iframe
+            /* Their own embed view: no header, no trade list, just the pair.
+               Framing is allowed — checked rather than assumed. */
+            src={`${chart}?embed=1&theme=dark&info=0&trades=0`}
+            title="dexscreener"
+            loading="lazy"
+          />
+          {/* An iframe that fails to load fails silently, so there is always a
+              way out of the panel to the real page. */}
+          <a href={chart} target="_blank" rel="noreferrer">
+            open it on dexscreener
+          </a>
         </div>
+      ) : (
+        <p className="chart-empty">
+          nothing to chart until the address is spoken. when it is, this is where the
+          market answers.
+        </p>
+      )}
+
+      <dl className="rows">
         {SOCIALS.map((s) => (
           <div className="row" key={s.name}>
             <dt>
@@ -674,7 +689,7 @@ function Mirror({ save }: { save: Save }) {
 
     g.fillStyle = '#4fd6c4';
     g.font = '600 20px ui-monospace, monospace';
-    g.fillText('HOLLOWMERE · THE SANCTUM', 64, 92);
+    g.fillText(`${BRAND.world} · THE SANCTUM`, 64, 92);
 
     g.fillStyle = '#e8e3d6';
     g.font = '700 68px Georgia, serif';
@@ -682,7 +697,7 @@ function Mirror({ save }: { save: Save }) {
 
     g.font = '400 22px system-ui, sans-serif';
     g.fillStyle = '#9a93a4';
-    g.fillText('the curse never checked out.', 64, 216);
+    g.fillText(BRAND.hero, 64, 216);
 
     const rows: [string, string][] = [
       ['nights at the fire', String(save.nights)],

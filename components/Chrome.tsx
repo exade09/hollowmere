@@ -60,6 +60,14 @@ export default function Chrome({
 
   return (
     <div className="chrome">
+      {/* The one thing this site is for, so it goes first and it is the only
+          filled button in the bar. Everything else here is a room to look at;
+          this is the thing that answers. */}
+      <button className="chrome-btn speak-btn" onClick={onSpeak} title="talk to the agent">
+        <span className="speak-mark" aria-hidden="true" />
+        talk to the agent
+      </button>
+
       <button
         className="chrome-btn wide"
         onClick={copy}
@@ -71,10 +79,6 @@ export default function Chrome({
       </button>
 
       <button className="chrome-btn" onClick={onMap}>the hold</button>
-      <button className="chrome-btn speak-btn" onClick={onSpeak} title="talk to Wick">
-        <span className="speak-mark" aria-hidden="true" />
-        speak to wick
-      </button>
       <button className="chrome-btn" onClick={onLedger} title="read a wallet">
         what you hold
       </button>

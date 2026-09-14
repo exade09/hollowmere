@@ -20,7 +20,7 @@ import { PageMark, XMark } from '@/components/icons';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'HOLLOWMERE — the manual',
+  title: `${BRAND.world} — the manual`,
   description: `what the keeper reads, how he reads it, and what he will not say. built on ${BRAND.model}.`,
 };
 

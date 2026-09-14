@@ -2,8 +2,8 @@
  * Every string the visitor can read lives here.
  *
  * One voice throughout, and it is Wick's: lower case, short, one thought at a
- * time. Only names take capitals — HOLLOWMERE, WICK, Robinhood Chain, and the
- * place plates in THE HOLD, which are signage rather than prose. The posts the
+ * time. Only names take capitals — HOLLOW AGENT, WICK, Robinhood Chain, and
+ * the place plates in THE HOLD, which are signage rather than prose. The posts the
  * agent writes and the answers it gives in the mirror follow the same rules, so
  * the room and the account sound like one thing.
  *
@@ -15,8 +15,16 @@
 import { STICKER_PACK } from './stickers';
 
 export const BRAND = {
-  world: 'HOLLOWMERE',
-  hero: 'the curse never checked out.',
+  /**
+   * The name on the door. It is the product's name rather than the castle's:
+   * the castle is THE HOLD, which is what the prose and the map call it, and
+   * what the keeper keeps.
+   */
+  world: 'HOLLOW AGENT',
+  /** The line under the name on the way in, and on the share card. */
+  hero: 'built on Fable 5.1',
+  /** What the place is, for a link preview that has one line to say it in. */
+  blurb: 'he reads the chain. he does not read the future.',
   ticker: process.env.NEXT_PUBLIC_TICKER || 'HOLLOW',
   chain: process.env.NEXT_PUBLIC_CHAIN || 'Robinhood Chain',
   /** Token page prefix; the contract address is appended to it. */
@@ -193,7 +201,7 @@ export const HOLD: {
 export const WICK: [string, string][] = [
   ['name', 'WICK'],
   ['height', 'shorter than you expect'],
-  ['holding', 'all of HOLLOWMERE'],
+  ['holding', 'all of the hold'],
   ['duty', 'keep the fire'],
   ['likes', 'quiet, a steady flame'],
   ['dislikes', 'draughts, visitors'],

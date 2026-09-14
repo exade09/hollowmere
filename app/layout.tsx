@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Grenze, Alegreya_Sans, IBM_Plex_Mono } from 'next/font/google';
-import { ACCOUNT } from '@/lib/content';
+import { ACCOUNT, BRAND } from '@/lib/content';
 import './globals.css';
 
 const display = Grenze({
@@ -31,11 +31,11 @@ export const metadata: Metadata = {
         ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
         : 'http://localhost:3000'),
   ),
-  title: 'HOLLOWMERE',
-  description: 'the curse never checked out.',
+  title: BRAND.world,
+  description: BRAND.blurb,
   openGraph: {
-    title: 'HOLLOWMERE',
-    description: 'the curse never checked out.',
+    title: BRAND.world,
+    description: BRAND.blurb,
     images: ['/clips/sanctum/poster/00_idle.jpg'],
   },
   twitter: {
@@ -44,8 +44,8 @@ export const metadata: Metadata = {
     // showing a card with nobody attached to it.
     site: `@${ACCOUNT}`,
     creator: `@${ACCOUNT}`,
-    title: 'HOLLOWMERE',
-    description: 'the curse never checked out.',
+    title: BRAND.world,
+    description: BRAND.blurb,
     images: ['/clips/sanctum/poster/00_idle.jpg'],
   },
 };

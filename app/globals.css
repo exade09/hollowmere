@@ -1,4 +1,4 @@
-/* HOLLOWMERE — palette taken from the world bible and matched to the renders:
+/* HOLLOW AGENT — palette taken from the world bible and matched to the renders:
    cold stone, warm fire, spectral teal on everything interactive.
 
    The widgets are cut from the same material as the rooms. Their plates are
@@ -940,8 +940,26 @@ a:hover { border-bottom-color: var(--spectre); }
    button rather than hiding inside another panel. The teal mark is the same
    colour as the interactive outlines in the scene, which is the site's way of
    saying "this answers". */
-.speak-btn { color: var(--bone); }
-.speak-btn:hover { color: var(--spectre); }
+/* The primary action, and the only filled button in the bar.
+   It was bone-white text among nine other bone-white buttons, which made the
+   one thing the site is for look like the ninth thing it offers. Filled in the
+   world's teal with the ground colour on top: it reads first at a glance and
+   still belongs to the same interface, because the fill is the same teal the
+   selected shelf tab and every live seam already use. */
+.speak-btn {
+  color: var(--ground);
+  background: var(--spectre);
+  font-weight: 500;
+  letter-spacing: .13em;
+  padding-right: 16px;
+  box-shadow: var(--bevel), 0 0 22px rgba(79, 214, 196, .22);
+}
+.speak-btn:hover { color: var(--ground); background: #6ee6d6; }
+.speak-btn .speak-mark {
+  /* Against the teal fill the facet has to be dark to be seen at all. */
+  background: var(--ground);
+  box-shadow: none;
+}
 .speak-mark {
   width: 7px;
   height: 7px;
@@ -1624,3 +1642,40 @@ a:hover { border-bottom-color: var(--spectre); }
   font-weight: 600;
 }
 .peek-plate figcaption span { color: var(--muted); font-size: 14px; flex: 1 1 200px; }
+
+/* ---------------------------------------------------------------- the chart
+   The market, framed, where the raven's own notes used to be. Sized by aspect
+   rather than a fixed height so it is a chart on a phone as well as a chart on
+   a desktop, and capped so it never pushes the rest of the panel off screen. */
+.chart {
+  margin: 16px 0 4px;
+}
+.chart iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  max-height: 52vh;
+  border: 0;
+  clip-path: var(--cut-sm);
+  background: #0e0c15;
+  box-shadow: var(--bevel);
+}
+.chart a {
+  display: inline-block;
+  margin-top: 10px;
+  border-bottom: none;
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.chart-empty {
+  margin: 16px 0 4px;
+  padding: 16px 17px;
+  clip-path: var(--cut-md);
+  background: #16131f;
+  box-shadow: var(--bevel);
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+}

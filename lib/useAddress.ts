@@ -32,12 +32,25 @@ const POLL_MS = 20_000;
 export type LiveAddress = {
   /** Whatever should sit after "CA:" — an address, or a word like TBA. */
   text: string;
-  /** True only when the text is shaped like an address on this chain. */
+  /** True when the text is shaped like an address of either kind. */
   isAddress: boolean;
+  /**
+   * Which kind, because the links are not interchangeable: an explorer for one
+   * chain cannot read an address from another. Mirrors addressKind in
+   * lib/settings.ts, duplicated here only because this file runs in the
+   * browser and that one reaches for the store.
+   */
+  kind: 'evm' | 'solana' | null;
 };
 
 function shape(text: string): LiveAddress {
-  return { text, isAddress: /^0x[0-9a-fA-F]{40}$/.test(text.trim()) };
+  const t = text.trim();
+  const kind = /^0x[0-9a-fA-F]{40}$/.test(t)
+    ? ('evm' as const)
+    : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(t)
+      ? ('solana' as const)
+      : null;
+  return { text, isAddress: kind !== null, kind };
 }
 
 export function useAddress(): LiveAddress {
@@ -50,12 +63,19 @@ export function useAddress(): LiveAddress {
       try {
         const r = await fetch('/api/config', { cache: 'no-store' });
         if (!r.ok) return;
-        const j = (await r.json()) as { contract?: string; isAddress?: boolean };
+        const j = (await r.json()) as {
+          contract?: string;
+          isAddress?: boolean;
+          kind?: 'evm' | 'solana' | null;
+        };
         if (!alive || typeof j.contract !== 'string') return;
+        // The server's answer wins; the local shape is the fallback for an
+        // older deployment that does not send the kind yet.
+        const local = shape(j.contract);
         setLive({
           text: j.contract,
-          isAddress:
-            typeof j.isAddress === 'boolean' ? j.isAddress : shape(j.contract).isAddress,
+          isAddress: typeof j.isAddress === 'boolean' ? j.isAddress : local.isAddress,
+          kind: j.kind !== undefined ? j.kind : local.kind,
         });
       } catch {
         /* keep whatever is on screen */

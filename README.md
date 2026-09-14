@@ -1,6 +1,12 @@
-# HOLLOWMERE
+# HOLLOW AGENT
 
-*the curse never checked out.*
+*he reads the chain. he does not read the future.*
+
+The repository, the folder, the clip paths and the internal names are still
+HOLLOWMERE and stay that way: renaming them would break every path to an
+already rendered clip for no gain. Only what a visitor reads changed — the
+product is HOLLOW AGENT, and the castle it is set in is THE HOLD, which is what
+the prose and the map call it and what the keeper keeps.
 
 A memecoin site built as a place rather than a landing page. Two rooms rendered
 in Blender play as seamless video loops; every object you can touch is outlined

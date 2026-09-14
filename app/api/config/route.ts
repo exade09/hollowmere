@@ -1,5 +1,5 @@
 import { BRAND } from '@/lib/content';
-import { currentAddress, looksLikeAddress } from '@/lib/settings';
+import { addressKind, currentAddress, looksLikeAddress } from '@/lib/settings';
 
 /**
  * Contract address and chain, served from their own endpoint so they can
@@ -26,6 +26,9 @@ export async function GET() {
     {
       contract: now.text,
       isAddress: looksLikeAddress(now.text),
+      // Which shape it is, so the front end can offer the links that shape
+      // actually supports rather than all of them.
+      kind: addressKind(now.text),
       from: now.from,
       chain: BRAND.chain,
       explorer: BRAND.explorer,

@@ -61,9 +61,31 @@ export function cleanAddressText(raw: string): string {
     .slice(0, MAX);
 }
 
-/** Whether the text is shaped like an address on this chain. */
+/**
+ * Which kind of address the text is shaped like, if either.
+ *
+ * Both shapes, because the field has to survive the project being on either
+ * kind of chain — and the first time a real Solana address went through here it
+ * was treated as a word: no copy button, no chart, no link. An EVM address is
+ * 0x and forty hex; a Solana address is base58, thirty-two to forty-four
+ * characters, from an alphabet with no zero, capital O, capital I or lower-case
+ * l in it. Nothing a person would type as a placeholder — TBA, SOON, later —
+ * is long enough to be mistaken for either.
+ *
+ * The distinction is kept rather than flattened to a boolean because the links
+ * are not interchangeable: a block explorer for one chain cannot read an
+ * address from another, and a chart URL carries its chain in the path.
+ */
+export function addressKind(text: string): 'evm' | 'solana' | null {
+  const t = text.trim();
+  if (/^0x[0-9a-fA-F]{40}$/.test(t)) return 'evm';
+  if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(t)) return 'solana';
+  return null;
+}
+
+/** Whether the text is shaped like an address at all. */
 export function looksLikeAddress(text: string): boolean {
-  return /^0x[0-9a-fA-F]{40}$/.test(text.trim());
+  return addressKind(text) !== null;
 }
 
 function upstash(url: string, token: string): SettingsStore {
