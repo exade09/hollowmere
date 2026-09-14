@@ -117,13 +117,13 @@ export type TokenReport = {
     activeAddressesChecked?: number;
     /** Active addresses whose current balance is still above zero. */
     activeAddressesStillHolding?: number;
-    /** Largest net sellers whose current balance and code were checked. */
+    /** Highest-flow addresses whose current balance was checked. */
     largeOutflowAddressesChecked?: number;
-    /** Net sellers that moved at least 0.5% of supply out in this window. */
+    /** Checked active addresses with net outflow of at least 0.5% of supply. */
     largeNetOutflowAddresses?: number;
-    /** Those large net sellers now holding no more than 0.1% of supply. */
+    /** Those large-outflow addresses now holding no more than 0.1% of supply. */
     largeExitAddresses?: number;
-    /** Largest net outflow by one non-contract address, as a share of supply. */
+    /** Largest net outflow by one checked active address, as a share of supply. */
     largestNetOutflowPct?: number;
   };
   note?: string;
@@ -494,68 +494,44 @@ export async function readToken(
           active.map((a) => ethCall(addr, SEL.balanceOf + padAddress(a))),
         );
         let top = BigInt(0);
+        let largestNetOutflow = BigInt(0);
+        let checked = 0;
         let stillHolding = 0;
-        for (const b of balances) {
+        let largeNetOutflows = 0;
+        let largeExits = 0;
+        for (let index = 0; index < balances.length; index += 1) {
+          const b = balances[index];
           if (!b.ok) continue;
           const v = hexToBigInt(b.value);
           if (v !== undefined) {
+            checked += 1;
             if (v > BigInt(0)) stillHolding += 1;
             if (v > top) top = v;
-          }
-        }
-        window.activeAddressesChecked = active.length;
-        window.topActiveSharePct =
-          Math.round(Number((top * BigInt(10_000)) / supplyRaw) / 100 * 100) / 100;
-        window.activeAddressesStillHolding = stillHolding;
-      }
-      if (supplyRaw && supplyRaw > BigInt(0)) {
-        const netSellers = [...flows.entries()]
-          .map(([address, flow]) => ({
-            address,
-            netOut: flow.sent > flow.received ? flow.sent - flow.received : BigInt(0),
-          }))
-          .filter((seller) => seller.netOut > BigInt(0))
-          .sort((a, b) => (b.netOut > a.netOut ? 1 : b.netOut < a.netOut ? -1 : 0))
-          .slice(0, 40);
 
-        if (netSellers.length) {
-          const checks = await rpcBatch(
-            rpcUrl,
-            netSellers.flatMap((seller) => [
-              ethCall(addr, SEL.balanceOf + padAddress(seller.address)),
-              { method: 'eth_getCode', params: [seller.address, 'latest'] },
-            ]),
-          );
-          let large = 0;
-          let exited = 0;
-          let largest = BigInt(0);
-
-          netSellers.forEach((seller, index) => {
-            const balanceAnswer = checks[index * 2];
-            const codeAnswer = checks[index * 2 + 1];
-            const balance = balanceAnswer?.ok ? hexToBigInt(balanceAnswer.value) : undefined;
-            const code = codeAnswer?.ok && typeof codeAnswer.value === 'string' ? codeAnswer.value : '';
-            const delegatedWallet = /^0xef0100[0-9a-f]{40}$/i.test(code);
-            const isEoa = codeAnswer?.ok && (code === '0x' || code === '0x0' || delegatedWallet);
-            if (!isEoa || balance === undefined) return;
-
-            if (seller.netOut > largest) largest = seller.netOut;
-            if (seller.netOut * BigInt(200) >= supplyRaw) {
-              large += 1;
-              if (balance * BigInt(1_000) <= supplyRaw) exited += 1;
+            const flow = flows.get(active[index]);
+            const netOutflow =
+              flow && flow.sent > flow.received
+                ? flow.sent - flow.received
+                : BigInt(0);
+            if (netOutflow > largestNetOutflow) largestNetOutflow = netOutflow;
+            if (netOutflow * BigInt(200) >= supplyRaw) {
+              largeNetOutflows += 1;
+              if (v * BigInt(1_000) <= supplyRaw) largeExits += 1;
             }
-          });
-
-          window.largeOutflowAddressesChecked = netSellers.length;
-          window.largeNetOutflowAddresses = large;
-          window.largeExitAddresses = exited;
-          if (largest > BigInt(0)) {
-            window.largestNetOutflowPct =
-              Math.round(Number((largest * BigInt(100_000)) / supplyRaw)) / 1_000;
           }
         }
+        if (checked > 0) {
+          window.activeAddressesChecked = checked;
+          window.topActiveSharePct =
+            Math.round(Number((top * BigInt(10_000)) / supplyRaw)) / 100;
+          window.activeAddressesStillHolding = stillHolding;
+          window.largeOutflowAddressesChecked = checked;
+          window.largeNetOutflowAddresses = largeNetOutflows;
+          window.largeExitAddresses = largeExits;
+          window.largestNetOutflowPct =
+            Math.round(Number((largestNetOutflow * BigInt(100_000)) / supplyRaw)) / 1_000;
+        }
       }
-
       report.window = window;
     }
     Object.assign(report, await marketContext);
@@ -634,17 +610,17 @@ export function tokenFacts(t: TokenReport): string[] {
     }
     if (typeof w.largeNetOutflowAddresses === 'number') {
       out.push(
-        `non-contract addresses with net outflow of at least 0.5% of supply in the window: ${w.largeNetOutflowAddresses}`,
+        `active addresses with net outflow of at least 0.5% of supply in the window: ${w.largeNetOutflowAddresses} among the ${w.largeOutflowAddressesChecked} highest-flow addresses checked; market contracts can be among them`,
       );
     }
     if (typeof w.largeExitAddresses === 'number') {
       out.push(
-        `large net-outflow addresses now holding no more than 0.1% of supply: ${w.largeExitAddresses}; these are addresses, not identified people`,
+        `large net-outflow addresses now holding no more than 0.1% of supply: ${w.largeExitAddresses}; these are addresses, not identified people, and a pool or router can be among them`,
       );
     }
     if (typeof w.largestNetOutflowPct === 'number') {
       out.push(
-        `largest net outflow by one non-contract address: ${w.largestNetOutflowPct}% of supply`,
+        `largest net outflow by one checked active address: ${w.largestNetOutflowPct}% of supply`,
       );
     }
     if (typeof w.mints === 'number') {
