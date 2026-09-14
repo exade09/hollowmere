@@ -1533,3 +1533,94 @@ a:hover { border-bottom-color: var(--spectre); }
   padding-left: 13px;
   border-left: 2px solid var(--line);
 }
+
+/* ----------------------------------------------------------------- the pack
+   Twenty die-cut stickers with transparent backgrounds. The tiles carry the
+   world's dark plate rather than the white Telegram shows them on, so a white
+   border reads as a border instead of disappearing. */
+.peeled {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+  max-height: 48vh;
+  overflow-y: auto;
+  padding: 2px 2px 4px;
+  margin: 16px 0 4px;
+}
+.peel {
+  margin: 0;
+  padding: 8px 6px 6px;
+  clip-path: var(--cut-sm);
+  background: #0e0c15;
+  box-shadow: var(--bevel);
+  text-align: center;
+  transition: background .18s ease, transform .18s ease;
+}
+.peel:hover { background: #17131f; transform: translateY(-2px); }
+.peel img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Pixel-doubling a 256px sticker into a 112px tile is the only place in this
+     interface where smoothing matters more than sharpness. */
+  image-rendering: auto;
+}
+.peel figcaption {
+  margin-top: 5px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.peel:hover figcaption { color: var(--bone); }
+
+/* -------------------------------------------------------- looking in at a place
+   A still of a shut place, over the map. It is a look through a doorway rather
+   than a room, so it sits on the map instead of replacing it, and the plate is
+   the same chamfered pair as every panel. */
+.card.peek { cursor: pointer; }
+.card.peek:hover { background: #221d2e; }
+
+.peek-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(90% 70% at 50% 50%, rgba(6, 5, 9, .74), rgba(6, 5, 9, .92));
+  animation: fade .18s ease;
+}
+.peek-plate {
+  margin: 0;
+  width: min(980px, 100%);
+  clip-path: var(--cut-lg);
+  padding: 2px;
+  background: linear-gradient(155deg, #4b4457 0 33%, #2a2534 33% 64%, #191622 64%);
+}
+.peek-plate img {
+  display: block;
+  width: 100%;
+  height: auto;
+  clip-path: var(--cut-lg);
+}
+.peek-plate figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
+  /* 26 px at the sides, not 16: the plate is cut to a chamfered octagon, and
+     the bottom corners take 24 px out of the caption's own row. */
+  padding: 13px 26px 14px;
+  background: #14121b;
+}
+.peek-plate figcaption b {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 17px;
+  letter-spacing: .18em;
+  font-weight: 600;
+}
+.peek-plate figcaption span { color: var(--muted); font-size: 14px; flex: 1 1 200px; }

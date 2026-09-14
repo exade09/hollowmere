@@ -8,9 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "clips": "node scripts/clip-manifest.mjs",
-    "prebuild": "node scripts/clip-manifest.mjs && node scripts/wallpaper-manifest.mjs",
-    "predev": "node scripts/clip-manifest.mjs && node scripts/wallpaper-manifest.mjs",
-    "wallpapers": "node scripts/wallpaper-manifest.mjs"
+    "prebuild": "node scripts/clip-manifest.mjs && node scripts/wallpaper-manifest.mjs && node scripts/sticker-manifest.mjs && node scripts/hold-manifest.mjs",
+    "predev": "node scripts/clip-manifest.mjs && node scripts/wallpaper-manifest.mjs && node scripts/sticker-manifest.mjs && node scripts/hold-manifest.mjs",
+    "wallpapers": "node scripts/wallpaper-manifest.mjs",
+    "stickers": "node scripts/sticker-manifest.mjs",
+    "holds": "node scripts/hold-manifest.mjs"
   },
   "dependencies": {
     "next": "^16.3.4",

@@ -10,13 +10,15 @@ import WalletRead from '@/components/WalletRead';
 import WickChat from '@/components/WickChat';
 import { XMark } from '@/components/icons';
 import {
-  ARCHIVE, BRAND, HOARD_NOTE, HOLD, LOCK_GLYPHS, LOCK_ORDER, RITES, SOCIALS,
-  SPHERES, TALLY_NOTES, WICK,
+  ARCHIVE, BRAND, DEXSCREENER, HOARD_NOTE, HOLD, LOCK_GLYPHS, LOCK_ORDER, RITES,
+  SOCIALS, SPHERES, TALLY_NOTES, WICK,
 } from '@/lib/content';
 import {
   CANDLE_HOURS, NIGHTS_FOR_KEY, Save, candleState, markBlock, patch, read, todayKey,
 } from '@/lib/save';
 import { PanelId, SceneId } from '@/lib/scenes';
+import { HOLD_STILLS } from '@/lib/holds';
+import { STICKERS, STICKER_PACK } from '@/lib/stickers';
 import { WALLPAPERS } from '@/lib/wallpapers';
 import { useAddress } from '@/lib/useAddress';
 
@@ -95,13 +97,38 @@ function Sigil({ save, refresh }: { save: Save; refresh: () => void }) {
 }
 
 /* -------------------------------------------------- the raven: word outside */
+
+/**
+ * Word from outside: the dispatches, where to find the account, and the pair
+ * of pages that show what the token is doing.
+ *
+ * The chart link is built from the live address rather than written down, so
+ * it appears the moment the desk at /admin writes one and points at the right
+ * token by construction. While the field holds a word rather than an address
+ * — TBA, SOON — there is no link, because a chart URL ending in the word SOON
+ * is a dead page with our name on it.
+ */
 function Raven({ save }: { save: Save }) {
   const keyEarned = save.nights >= NIGHTS_FOR_KEY;
+  const { text: ca, isAddress } = useAddress();
   return (
     <>
       <p className="lead">it goes where i cannot. it comes back with scraps.</p>
       <Dispatches />
       <dl className="rows">
+        <div className="row">
+          <dt>dexscreener</dt>
+          <dd>
+            {isAddress ? (
+              <a href={`${DEXSCREENER}${ca}`} target="_blank" rel="noreferrer">
+                {`${DEXSCREENER}${ca}`.replace('https://', '')}
+              </a>
+            ) : (
+              <span className="dim">nothing to chart until the address is spoken</span>
+            )}
+            <div className="dim" style={{ fontSize: 13 }}>what the market makes of it</div>
+          </dd>
+        </div>
         {SOCIALS.map((s) => (
           <div className="row" key={s.name}>
             <dt>
@@ -224,7 +251,7 @@ function Chest({
  * so adding one is a file copy and this file never learns about it.
  */
 function Books() {
-  const [shelf, setShelf] = useState<'volumes' | 'wallpapers'>('volumes');
+  const [shelf, setShelf] = useState<'volumes' | 'wallpapers' | 'stickers'>('volumes');
   const tag = { ready: 'take it', soon: 'not copied', lost: 'lost' };
 
   return (
@@ -245,6 +272,14 @@ function Books() {
           onClick={() => setShelf('wallpapers')}
         >
           wallpapers <span className="dim">{WALLPAPERS.length}</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={shelf === 'stickers'}
+          className={`chrome-btn ${shelf === 'stickers' ? 'on' : ''}`}
+          onClick={() => setShelf('stickers')}
+        >
+          stickers <span className="dim">{STICKERS.length}</span>
         </button>
       </div>
 
@@ -282,6 +317,47 @@ function Books() {
       )}
 
       {shelf === 'wallpapers' && <Wallpapers />}
+      {shelf === 'stickers' && <Stickers />}
+    </>
+  );
+}
+
+/**
+ * The pack, and the one button that matters on it.
+ *
+ * The grid is the pack as it will look in a picker, so it is worth being able
+ * to look at before installing anything — but the button goes above the grid
+ * rather than under it: somebody who already knows they want them should not
+ * have to scroll past twenty pictures to say so.
+ *
+ * Each sticker is transparent, so the tiles carry the world's own dark plate
+ * behind them rather than the white Telegram shows them on.
+ */
+function Stickers() {
+  if (!STICKERS.length) {
+    return <p className="lead">the pack is not cut yet.</p>;
+  }
+  return (
+    <>
+      <p className="lead">twenty of him, for the group chats.</p>
+      <div className="actions">
+        <a className="btn primary" href={STICKER_PACK} target="_blank" rel="noreferrer">
+          add to telegram
+        </a>
+        <span className="chrome-btn wide">{STICKERS.length} stickers</span>
+      </div>
+      <div className="peeled">
+        {STICKERS.map((st) => (
+          <figure className="peel" key={st.id}>
+            <img src={st.thumb} alt={st.label} loading="lazy" decoding="async" />
+            <figcaption>{st.label}</figcaption>
+          </figure>
+        ))}
+      </div>
+      <p className="wick-small">
+        the pack is the same twenty, in the same order, as the one telegram installs. i did
+        not pose for any of them.
+      </p>
     </>
   );
 }
@@ -333,37 +409,79 @@ function Hold({
   onPanel: (id: PanelId) => void;
   save: Save;
 }) {
+  // Which shut place is being looked at. A still is a look through a doorway,
+  // not a room, so it opens over the map rather than replacing it.
+  const [looking, setLooking] = useState<string | null>(null);
+  const shown = HOLD.find((h) => h.slug && h.slug === looking);
+  const shownStill = shown?.slug ? HOLD_STILLS[shown.slug] : undefined;
+
   return (
     <>
       <p className="lead">all of it. most of it is shut.</p>
       <div className="grid">
-        {HOLD.map((h) => (
-          <div
-            className={`card ${h.id ? 'open travel' : ''}`}
-            key={h.name}
-            onClick={() => h.id && onTravel(h.id)}
-            role={h.id ? 'button' : undefined}
-            tabIndex={h.id ? 0 : undefined}
-            onKeyDown={(e) => { if (h.id && (e.key === 'Enter' || e.key === ' ')) onTravel(h.id); }}
-          >
-            {h.id && (
-              <img
-                className="card-icon"
-                /* The centrepiece of each room: the astrolabe upstairs, the
-                   cage below. The sigil was tried first and reads as a teal
-                   smudge at this size — a place icon has to survive being
-                   26 pixels tall. */
-                src={`/ui/icons/${h.id === 'sanctum' ? 'astro' : 'cage'}.png`}
-                alt=""
-                aria-hidden="true"
-              />
-            )}
-            <b>{h.name}</b>
-            {h.note && <small>{h.note}</small>}
-            <span className="tag">{h.id ? 'go in' : 'shut'}</span>
-          </div>
-        ))}
+        {HOLD.map((h) => {
+          const still = h.slug ? HOLD_STILLS[h.slug] : undefined;
+          // Three things a card can do, and it never looks like it does one of
+          // the others: walk in, look at a picture, or nothing at all.
+          const act = h.id
+            ? () => onTravel(h.id as SceneId)
+            : still
+              ? () => setLooking(h.slug as string)
+              : null;
+          return (
+            <div
+              className={`card ${h.id ? 'open travel' : ''} ${still ? 'peek' : ''} ${
+                h.state === 'lost' ? 'lost' : ''
+              }`}
+              key={h.name}
+              onClick={() => act && act()}
+              role={act ? 'button' : undefined}
+              tabIndex={act ? 0 : undefined}
+              onKeyDown={(e) => {
+                if (act && (e.key === 'Enter' || e.key === ' ')) act();
+              }}
+            >
+              {h.id && (
+                <img
+                  className="card-icon"
+                  /* The centrepiece of each room: the astrolabe upstairs, the
+                     cage below. The sigil was tried first and reads as a teal
+                     smudge at this size — a place icon has to survive being
+                     26 pixels tall. */
+                  src={`/ui/icons/${h.id === 'sanctum' ? 'astro' : 'cage'}.png`}
+                  alt=""
+                  aria-hidden="true"
+                />
+              )}
+              <b>{h.name}</b>
+              {h.note && <small>{h.note}</small>}
+              <span className="tag">
+                {h.id ? 'go in' : h.state === 'lost' ? 'shut' : still ? 'look' : 'soon'}
+              </span>
+            </div>
+          );
+        })}
       </div>
+
+      {shown && shownStill && (
+        <div
+          className="peek-shade"
+          role="dialog"
+          aria-label={shown.name}
+          onClick={() => setLooking(null)}
+        >
+          <figure className="peek-plate" onClick={(e) => e.stopPropagation()}>
+            <img src={shownStill} alt={shown.name} />
+            <figcaption>
+              <b>{shown.name}</b>
+              <span>{shown.note}</span>
+              <button className="btn" onClick={() => setLooking(null)}>
+                close
+              </button>
+            </figcaption>
+          </figure>
+        </div>
+      )}
 
       <div className="label-sm">pastimes</div>
       <div className="grid">

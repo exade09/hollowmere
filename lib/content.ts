@@ -12,6 +12,8 @@
  * unbalances the plate it is in.
  */
 
+import { STICKER_PACK } from './stickers';
+
 export const BRAND = {
   world: 'HOLLOWMERE',
   hero: 'the curse never checked out.',
@@ -33,6 +35,10 @@ export const BRAND = {
 /** The account. One handle, and every link to it comes from here. */
 export const ACCOUNT = 'hollowrh';
 
+// Re-exported as well as imported, so a component can take the pack link from
+// the same place it takes every other string.
+export { STICKER_PACK };
+
 export const SOCIALS: {
   name: string;
   href: string;
@@ -46,8 +52,24 @@ export const SOCIALS: {
     note: 'the only place announcements go',
     mark: 'x',
   },
-  { name: 'Telegram', href: 'https://t.me/', note: 'for the ones who never sleep' },
+  // The chat itself is not linked anywhere on this site. The pack is the one
+  // thing on Telegram worth sending somebody to.
+  {
+    name: 'telegram stickers',
+    href: STICKER_PACK,
+    note: 'twenty of him, for your group chat',
+  },
 ];
+
+/**
+ * Where a token page lives, for the raven's dispatch row.
+ *
+ * The base is a variable rather than a constant because the path carries the
+ * chain — a token on one chain read through another chain's path is a dead
+ * link — so it can be corrected without a deploy.
+ */
+export const DEXSCREENER =
+  process.env.NEXT_PUBLIC_DEXSCREENER || 'https://dexscreener.com/solana/';
 
 /**
  * Scraps the raven brings back, used until the agent has approved dispatches of
@@ -106,17 +128,65 @@ export const ARCHIVE: {
   { name: 'the full rites', note: 'burnt at the edges', state: 'lost' },
 ];
 
-/** Only the places that actually have a scene are open. */
-export const HOLD: { name: string; id?: 'sanctum' | 'undercroft'; note: string }[] = [
-  { name: 'THE SANCTUM', id: 'sanctum', note: 'the tower. where i live' },
-  { name: 'THE UNDERCROFT', id: 'undercroft', note: 'below. quiet down there' },
-  { name: 'THE GREAT HALL', note: '' },
-  { name: 'THE HOLLOW WOOD', note: '' },
-  { name: 'THE LOW QUARTER', note: '' },
-  { name: 'THE CHAPEL OF ASH', note: '' },
-  { name: 'THE WATCHTOWER', note: '' },
-  { name: 'THE OSSUARY', note: '' },
-  { name: '???', note: 'i do not remember' },
+/**
+ * The nine places, and what can be done with each.
+ *
+ *   open — it has a scene and you can walk into it.
+ *   soon — it is real and it is not finished. A still of it can be looked at
+ *          when one exists; the card says so either way, because a card that
+ *          looks clickable and is not is worse than a card that says shut.
+ *   lost — nothing to show, and that is the point rather than a gap.
+ *
+ * `slug` is how a card finds its picture: a file dropped into
+ * public/holds/<slug>.jpg appears on it without anything here changing. See
+ * scripts/hold-manifest.mjs.
+ */
+export const HOLD: {
+  name: string;
+  id?: 'sanctum' | 'undercroft';
+  note: string;
+  state: 'open' | 'soon' | 'lost';
+  slug?: string;
+}[] = [
+  { name: 'THE SANCTUM', id: 'sanctum', note: 'the tower. where i live', state: 'open' },
+  { name: 'THE UNDERCROFT', id: 'undercroft', note: 'below. quiet down there', state: 'open' },
+  {
+    name: 'THE GREAT HALL',
+    note: 'the long room. embers, and banners nobody took down',
+    state: 'soon',
+    slug: 'great-hall',
+  },
+  {
+    name: 'THE HOLLOW WOOD',
+    note: 'outside the wall. where the raven goes',
+    state: 'soon',
+    slug: 'hollow-wood',
+  },
+  {
+    name: 'THE LOW QUARTER',
+    note: 'the houses under the keep. emptied, not ruined',
+    state: 'soon',
+    slug: 'low-quarter',
+  },
+  {
+    name: 'THE CHAPEL OF ASH',
+    note: 'burned. the wall of names is still standing',
+    state: 'soon',
+    slug: 'chapel-of-ash',
+  },
+  {
+    name: 'THE WATCHTOWER',
+    note: 'on the ridge. it watched the wrong direction',
+    state: 'soon',
+    slug: 'watchtower',
+  },
+  {
+    name: 'THE OSSUARY',
+    note: 'under the chapel. tidy, which is the worst of it',
+    state: 'soon',
+    slug: 'ossuary',
+  },
+  { name: '???', note: 'i do not remember', state: 'lost' },
 ];
 
 /** Character sheet, shown in the mirror. */
@@ -150,15 +220,28 @@ export const TALLY_NOTES: { at: number; text: string }[] = [
   { at: 100, text: 'a hundred. someone else is counting now' },
 ];
 
-/** TODO: replace with the real founder's note — this is the reward for the lock. */
+/**
+ * The reward for the lock: the note the people who started this left at the
+ * bottom of the chest.
+ *
+ * Their words, not the keeper's, which is why the register is different from
+ * everything else on the site — this is the one place in the world where
+ * somebody from outside it speaks. It is deliberately not written in Wick's
+ * voice and should not be edited into it.
+ */
 export const HOARD_NOTE = {
-  title: 'the note at the bottom',
+  title: 'Congratulations! You can now read the secret message from the creators of Hollow Agent',
   body: [
-    'the letter from whoever started HOLLOWMERE goes here: why the place exists, ' +
-      'and why the lock had to be opened by hand.',
-    'the page is still blank. you got here first',
+    'gm',
+    'our team put a lot of time and love into creating this project',
+    'the original idea stemmed from our personal need to streamline basic research',
+    'as degens, we knew this would be interesting to those who are in the trenches 24/7',
+    'the three most active users who connect their wallets to our site will each receive 0.05 ETH',
+    'quite a few people will read this text; this information is our way of thanking you ' +
+      'for your enthusiasm',
+    'buy our token, use our agent, and enjoy',
   ],
-  sign: '— unsigned',
+  sign: '— the team',
 };
 
 export type Sphere = {

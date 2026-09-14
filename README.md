@@ -38,6 +38,7 @@ Then open http://localhost:3000.
 | `NEXT_PUBLIC_SITE_URL` | canonical origin for OG tags | Vercel's production URL |
 | `ADMIN_PASSWORD` | the password for the address desk at `/admin` | the desk refuses everything |
 | `CHAIN_RPC_URL` | JSON-RPC endpoint; without it no token or wallet can be read | the keeper says the stone is quiet |
+| `NEXT_PUBLIC_DEXSCREENER` | chart URL prefix; the live address is appended | `https://dexscreener.com/solana/` |
 
 Set them in Vercel under *Project → Settings → Environment Variables*. Nothing
 else needs to change: the address appears in three places at once — the bottom
@@ -273,6 +274,38 @@ own, so a file added by somebody without Python is not missing, only heavier.
 
 A click opens the full image; the corner of each tile saves it.
 
+## The pack
+
+Twenty die-cut stickers under `public/stickers/full`, listed into
+`lib/stickers.ts` by `scripts/sticker-manifest.mjs` the same way as the
+wallpapers — the folder is the source of truth and the label comes out of the
+file name, so `05-paste-it.png` is "paste it" and renaming a sticker is
+renaming one file. Grid copies live in `public/stickers/thumb` at 256 px.
+
+The shelf shows the pack in Telegram's own order with one button above the
+grid, because somebody who already wants them should not have to scroll past
+twenty pictures to say so. The prompts that made them are in
+`docs/stickers.html`, outside the app.
+
+Telegram itself is not linked anywhere on this site. The pack is the only
+thing on it worth sending somebody to, and it is what the raven's old Telegram
+row became.
+
+## The nine places
+
+Two are open, one is lost, and six are real and unfinished. Those six each
+carry a `slug`, and a file dropped at `public/holds/<slug>.jpg` turns the card
+on the map from `soon` into `look`: `scripts/hold-manifest.mjs` matches files
+to slugs and *warns about a file that matches nothing*, because a still nobody
+can reach is always a typo in the name and being told beats wondering.
+
+Three of the six are hanging already, taken from frames of the film — the great
+hall, the hollow wood and the chapel of ash are Blender scenes, not generated
+images. Prompts for all six are in `docs/locations.html`.
+
+A card never looks clickable when it is not: walk in, look at a picture, or
+nothing, and the tag says which.
+
 ## The pastimes
 
 Three small games, at `games` in the panel host, reached from the bar and from
@@ -360,7 +393,7 @@ list is `SPHERES` in `lib/content.ts`.
 Waiting on content, and marked `TODO` in `lib/content.ts`:
 
 - the founder's note that the chest lock unlocks;
-- the Telegram link and the press kit;
+- the press kit;
 - the third location behind the sealed gate.
 
 Every one of those degrades in the world's voice rather than showing an empty
