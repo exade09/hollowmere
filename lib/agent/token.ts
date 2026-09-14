@@ -402,28 +402,41 @@ export async function readToken(
     // Movement, and concentration among whoever moved.
     const head = Number(hexToBigInt(headHex) ?? BigInt(0));
     if (head > 0) {
-      const from = Math.max(0, head - windowBlocks);
-      const [logsA] = await rpcBatch(rpcUrl, [
-        {
-          method: 'eth_getLogs',
-          params: [
-            {
+      type TransferLog = { topics?: string[]; data?: string; blockNumber?: string };
+      let from = Math.max(0, head - windowBlocks);
+      let logs: TransferLog[] | undefined;
+      const widths = [windowBlocks, 10_800, 3_600, 1_200, 300]
+        .map((width) => Math.max(1, Math.min(windowBlocks, width)))
+        .filter((width, index, all) => all.indexOf(width) === index);
+
+      // Busy tokens can exceed the node's result cap. Keep narrowing to an
+      // honest recent window instead of losing movement analysis altogether.
+      for (const width of widths) {
+        const candidateFrom = Math.max(0, head - width);
+        const [answer] = await rpcBatch(rpcUrl, [
+          {
+            method: 'eth_getLogs',
+            params: [{
               address: addr,
               topics: [TRANSFER_TOPIC],
-              fromBlock: `0x${from.toString(16)}`,
+              fromBlock: `0x${candidateFrom.toString(16)}`,
               toBlock: 'latest',
-            },
-          ],
-        },
-      ]);
-      type TransferLog = { topics?: string[]; data?: string; blockNumber?: string };
-      if (!logsA.ok || !Array.isArray(logsA.value)) {
+            }],
+          },
+        ], 5_000);
+        if (answer.ok && Array.isArray(answer.value)) {
+          from = candidateFrom;
+          logs = answer.value as TransferLog[];
+          break;
+        }
+      }
+
+      if (!logs) {
         Object.assign(report, await marketContext);
         report.note =
           'the node would not return the transfer window, so holder and market data remain but recent exits are unknown';
         return report;
       }
-      const logs = logsA.value as TransferLog[];
 
       const senders = new Set<string>();
       const receivers = new Set<string>();

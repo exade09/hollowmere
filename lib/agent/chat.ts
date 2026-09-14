@@ -21,7 +21,7 @@
  */
 import { TokenAssessment, WalletAssessment, assessmentFacts, walletAssessmentFacts } from './assess';
 import { Provider } from './provider';
-import { DEFLECTION, auditReply } from './sanitize';
+import { auditReply } from './sanitize';
 import { TokenReport, tokenFacts } from './token';
 import { WalletReport, walletAddresses, walletFacts } from './wallet';
 
@@ -247,7 +247,9 @@ export async function reply(
     ...(input.wallet ? walletAddresses(input.wallet) : []),
   ].filter((a): a is string => typeof a === 'string');
   const verdict = auditReply(text, allowedAddresses, extended ? 2_200 : 900);
-  if (!verdict.ok) return { text: DEFLECTION, withheld: verdict.why };
+  if (!verdict.ok) {
+    return { text: fallbackReply(input), withheld: verdict.why };
+  }
   return { text };
 }
 
@@ -259,11 +261,16 @@ export async function reply(
  * data. Keeping this here also means provider errors never become permission
  * to invent an answer.
  */
-function finishFallback(lines: string[]): string {
-  const kept = lines.map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 5);
-  while (kept.length > 2 && kept.join('\n\n').length > 880) kept.pop();
+function finishFallback(lines: string[], extended = false): string {
+  const maxLines = extended ? 12 : 5;
+  const maxChars = extended ? 2_200 : 880;
+  const kept = lines
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .slice(0, maxLines);
+  while (kept.length > 2 && kept.join('\n\n').length > maxChars) kept.pop();
   const text = kept.join('\n\n');
-  return text.length <= 880 ? text : `${text.slice(0, 877)}...`;
+  return text.length <= maxChars ? text : `${text.slice(0, maxChars - 3)}...`;
 }
 
 export function fallbackReply(input: {
@@ -288,20 +295,80 @@ export function fallbackReply(input: {
       ]);
     }
 
+    const holders = token.holders;
+    const window = token.window;
+    const market = token.market;
+    const money = (value: number) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
     const lines = [`i read ${label}`];
-    if (input.assessment) {
-      lines.push(input.assessment.shape);
-      const important =
-        input.assessment.mechanisms.find((item) => item.weight === 'hard') ||
-        input.assessment.flags.find((item) => item.weight === 'hard') ||
-        input.assessment.mechanisms[0] ||
-        input.assessment.flags[0];
-      if (important) lines.push(`what matters: ${important.text}`);
-      for (const threshold of input.assessment.thresholds.slice(0, 2)) {
-        lines.push(`${threshold.name}: ${threshold.now}. ${threshold.means}`);
-      }
+
+    lines.push(
+      typeof holders?.count === 'number'
+        ? `who is still in: ${holders.count} holder addresses are reported by blockscout`
+        : 'who is still in: the current holder count is unknown',
+    );
+    if (
+      typeof holders?.topEoaSharePct === 'number' ||
+      typeof holders?.topTenEoaSharePct === 'number'
+    ) {
+      lines.push(
+        `holder weight: largest eoa ${holders?.topEoaSharePct ?? 'unknown'}%, ` +
+          `top ten eoas ${holders?.topTenEoaSharePct ?? 'unknown'}%`,
+      );
     }
-    return finishFallback(lines);
+    if (typeof holders?.eoaHoldersAtLeastOnePct === 'number') {
+      lines.push(`${holders.eoaHoldersAtLeastOnePct} eoas hold at least one per cent in the indexed top page`);
+    }
+
+    if (window) {
+      lines.push(
+        `movement over ${window.blocks} blocks: ${window.transfers} transfers, ` +
+          `${window.senders} senders and ${window.receivers} receivers`,
+      );
+      lines.push(
+        `still holding: ${window.activeAddressesStillHolding ?? 'unknown'} of ` +
+          `${window.activeAddressesChecked ?? 'unknown'} high-flow addresses checked`,
+      );
+      lines.push(
+        `large exits: ${window.largeNetOutflowAddresses ?? 'unknown'} addresses moved out at least 0.5% of supply; ` +
+          `${window.largeExitAddresses ?? 'unknown'} now hold no more than 0.1%. pools and routers can be among them`,
+      );
+    } else {
+      lines.push('who left: the rpc did not return a recent movement window, so exits are unknown');
+    }
+
+    if (market) {
+      lines.push(
+        `attention: ${typeof market.liquidityUsd === 'number' ? money(market.liquidityUsd) : 'unknown'} liquidity and ` +
+          `${typeof market.volume24hUsd === 'number' ? money(market.volume24hUsd) : 'unknown'} volume in 24 hours`,
+      );
+      lines.push(
+        `trades: ${market.buys24h ?? 'unknown'} buys against ${market.sells24h ?? 'unknown'} sells; ` +
+          `24 hour change ${market.priceChange24hPct ?? 'unknown'}%`,
+      );
+      lines.push(
+        `market cap ${typeof market.marketCapUsd === 'number' ? money(market.marketCapUsd) : 'unknown'}; ` +
+          `pair age ${market.pairAgeHours ?? 'unknown'} hours`,
+      );
+
+      const fragile =
+        (market.liquidityUsd !== undefined && market.liquidityUsd < 25_000) ||
+        (market.priceChange24hPct !== undefined && Math.abs(market.priceChange24hPct) > 100) ||
+        (market.buys24h !== undefined && market.sells24h !== undefined && market.sells24h > market.buys24h * 1.25) ||
+        (window?.largeExitAddresses !== undefined && window.largeExitAddresses > 0);
+      const constructive =
+        !fragile &&
+        market.liquidityUsd !== undefined && market.liquidityUsd >= 50_000 &&
+        market.volume24hUsd !== undefined && market.volume24hUsd >= market.liquidityUsd &&
+        market.buys24h !== undefined && market.sells24h !== undefined && market.buys24h >= market.sells24h;
+      lines.push(
+        `outlook: ${fragile ? 'fragile' : constructive ? 'constructive' : 'mixed'}. ` +
+          'it strengthens with deeper liquidity, persistent activity and fewer large exits; it weakens when those reverse',
+      );
+    } else {
+      lines.push('attention and outlook are unknown because no indexed market was returned');
+    }
+
+    return finishFallback(lines, true);
   }
 
   if (input.wallet) {
