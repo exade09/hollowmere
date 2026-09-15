@@ -17,7 +17,6 @@ import {
   CANDLE_HOURS, NIGHTS_FOR_KEY, Save, candleState, markBlock, patch, read, todayKey,
 } from '@/lib/save';
 import { PanelId, SceneId } from '@/lib/scenes';
-import { HOLD_STILLS } from '@/lib/holds';
 import { STICKERS, STICKER_PACK } from '@/lib/stickers';
 import { WALLPAPERS } from '@/lib/wallpapers';
 import { useAddress } from '@/lib/useAddress';
@@ -426,28 +425,17 @@ function Hold({
   onPanel: (id: PanelId) => void;
   save: Save;
 }) {
-  // Which shut place is being looked at. A still is a look through a doorway,
-  // not a room, so it opens over the map rather than replacing it.
-  const [looking, setLooking] = useState<string | null>(null);
-  const shown = HOLD.find((h) => h.slug && h.slug === looking);
-  const shownStill = shown?.slug ? HOLD_STILLS[shown.slug] : undefined;
-
   return (
     <>
       <p className="lead">all of it. most of it is shut.</p>
       <div className="grid">
         {HOLD.map((h) => {
-          const still = h.slug ? HOLD_STILLS[h.slug] : undefined;
-          // Three things a card can do, and it never looks like it does one of
-          // the others: walk in, look at a picture, or nothing at all.
-          const act = h.id
-            ? () => onTravel(h.id as SceneId)
-            : still
-              ? () => setLooking(h.slug as string)
-              : null;
+          // Only finished rooms are interactive. Every unfinished place is a
+          // plain SOON card, with no preview or misleading click affordance.
+          const act = h.id ? () => onTravel(h.id as SceneId) : null;
           return (
             <div
-              className={`card ${h.id ? 'open travel' : ''} ${still ? 'peek' : ''} ${
+              className={`card ${h.id ? 'open travel' : ''} ${
                 h.state === 'lost' ? 'lost' : ''
               }`}
               key={h.name}
@@ -458,47 +446,15 @@ function Hold({
                 if (act && (e.key === 'Enter' || e.key === ' ')) act();
               }}
             >
-              {h.id && (
-                <img
-                  className="card-icon"
-                  /* The centrepiece of each room: the astrolabe upstairs, the
-                     cage below. The sigil was tried first and reads as a teal
-                     smudge at this size — a place icon has to survive being
-                     26 pixels tall. */
-                  src={`/ui/icons/${h.id === 'sanctum' ? 'astro' : 'cage'}.png`}
-                  alt=""
-                  aria-hidden="true"
-                />
-              )}
               <b>{h.name}</b>
               {h.note && <small>{h.note}</small>}
               <span className="tag">
-                {h.id ? 'go in' : h.state === 'lost' ? 'shut' : still ? 'look' : 'soon'}
+                {h.id ? 'go in' : h.state === 'lost' ? 'shut' : 'soon'}
               </span>
             </div>
           );
         })}
       </div>
-
-      {shown && shownStill && (
-        <div
-          className="peek-shade"
-          role="dialog"
-          aria-label={shown.name}
-          onClick={() => setLooking(null)}
-        >
-          <figure className="peek-plate" onClick={(e) => e.stopPropagation()}>
-            <img src={shownStill} alt={shown.name} />
-            <figcaption>
-              <b>{shown.name}</b>
-              <span>{shown.note}</span>
-              <button className="btn" onClick={() => setLooking(null)}>
-                close
-              </button>
-            </figcaption>
-          </figure>
-        </div>
-      )}
 
       <div className="label-sm">pastimes</div>
       <div className="grid">
@@ -1038,7 +994,7 @@ const META: Record<PanelId, { kicker: string; title: string; icon?: string }> = 
   wick: { kicker: 'the keeper', title: 'SPEAK TO WICK', icon: undefined },
   ledger: { kicker: 'the ledger', title: 'WHAT YOU HOLD', icon: undefined },
   games: { kicker: 'the pastimes', title: 'MINIGAMES', icon: 'altar' },
-  howto: { kicker: 'the first page', title: 'HOW TO PLAY', icon: 'books' },
+  howto: { kicker: 'the first page', title: 'HOW IT WORKS', icon: 'books' },
 };
 
 export default function PanelHost({

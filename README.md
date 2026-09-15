@@ -306,18 +306,12 @@ row became.
 
 ## The nine places
 
-Two are open, one is lost, and six are real and unfinished. Those six each
-carry a `slug`, and a file dropped at `public/holds/<slug>.jpg` turns the card
-on the map from `soon` into `look`: `scripts/hold-manifest.mjs` matches files
-to slugs and *warns about a file that matches nothing*, because a still nobody
-can reach is always a typo in the name and being told beats wondering.
+Two are open, one is lost, and six are real and unfinished. The unfinished
+places have no preview images or click action: every one is plainly marked
+`soon`. Prompts for all six remain in `docs/locations.html`.
 
-Three of the six are hanging already, taken from frames of the film — the great
-hall, the hollow wood and the chapel of ash are Blender scenes, not generated
-images. Prompts for all six are in `docs/locations.html`.
-
-A card never looks clickable when it is not: walk in, look at a picture, or
-nothing, and the tag says which.
+A card never looks clickable when it is not: visitors can walk into either of
+the two finished rooms, while the rest stay still and say what state they are in.
 
 ## The pastimes
 

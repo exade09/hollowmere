@@ -84,8 +84,8 @@ export default function Chrome({
       <button className="chrome-btn" onClick={onLedger} title="read a wallet">
         what you hold
       </button>
-      <button className={'chrome-btn howto-nav'} onClick={onHowTo} title={'how to use the hold'}>
-        how to play
+      <button className={'chrome-btn howto-nav'} onClick={onHowTo} title={'how hollow agent works'}>
+        how it works
       </button>
       <button className="chrome-btn" onClick={onGames} title="three small games">
         minigames

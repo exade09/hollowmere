@@ -515,7 +515,7 @@ a:hover { border-bottom-color: var(--spectre); }
 .btn.warm:hover { background: #442f20; }
 .btn:disabled { opacity: .42; cursor: not-allowed; }
 
-/* --------------------------------------------------------- how to play */
+/* -------------------------------------------------------- how it works */
 .howto {
   display: grid;
   gap: 0;
@@ -1930,54 +1930,6 @@ a:hover { border-bottom-color: var(--spectre); }
   text-overflow: ellipsis;
 }
 .peel:hover figcaption { color: var(--bone); }
-
-/* -------------------------------------------------------- looking in at a place
-   A still of a shut place, over the map. It is a look through a doorway rather
-   than a room, so it sits on the map instead of replacing it, and the plate is
-   the same chamfered pair as every panel. */
-.card.peek { cursor: pointer; }
-.card.peek:hover { background: #221d2e; }
-
-.peek-shade {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: radial-gradient(90% 70% at 50% 50%, rgba(6, 5, 9, .74), rgba(6, 5, 9, .92));
-  animation: fade .18s ease;
-}
-.peek-plate {
-  margin: 0;
-  width: min(980px, 100%);
-  clip-path: var(--cut-lg);
-  padding: 2px;
-  background: linear-gradient(155deg, #4b4457 0 33%, #2a2534 33% 64%, #191622 64%);
-}
-.peek-plate img {
-  display: block;
-  width: 100%;
-  height: auto;
-  clip-path: var(--cut-lg);
-}
-.peek-plate figcaption {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 16px;
-  /* 26 px at the sides, not 16: the plate is cut to a chamfered octagon, and
-     the bottom corners take 24 px out of the caption's own row. */
-  padding: 13px 26px 14px;
-  background: #14121b;
-}
-.peek-plate figcaption b {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 17px;
-  letter-spacing: .18em;
-  font-weight: 600;
-}
-.peek-plate figcaption span { color: var(--muted); font-size: 14px; flex: 1 1 200px; }
 
 /* ---------------------------------------------------------------- the chart
    The market, framed, where the raven's own notes used to be. Sized by aspect

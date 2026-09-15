@@ -140,21 +140,16 @@ export const ARCHIVE: {
  * The nine places, and what can be done with each.
  *
  *   open — it has a scene and you can walk into it.
- *   soon — it is real and it is not finished. A still of it can be looked at
- *          when one exists; the card says so either way, because a card that
- *          looks clickable and is not is worse than a card that says shut.
+ *   soon — it is real and it is not finished. The card stays still and does
+ *          not imply that an unfinished room can be entered or previewed.
  *   lost — nothing to show, and that is the point rather than a gap.
  *
- * `slug` is how a card finds its picture: a file dropped into
- * public/holds/<slug>.jpg appears on it without anything here changing. See
- * scripts/hold-manifest.mjs.
  */
 export const HOLD: {
   name: string;
   id?: 'sanctum' | 'undercroft';
   note: string;
   state: 'open' | 'soon' | 'lost';
-  slug?: string;
 }[] = [
   { name: 'THE SANCTUM', id: 'sanctum', note: 'the tower. where i live', state: 'open' },
   { name: 'THE UNDERCROFT', id: 'undercroft', note: 'below. quiet down there', state: 'open' },
@@ -162,37 +157,31 @@ export const HOLD: {
     name: 'THE GREAT HALL',
     note: 'the long room. embers, and banners nobody took down',
     state: 'soon',
-    slug: 'great-hall',
   },
   {
     name: 'THE HOLLOW WOOD',
     note: 'outside the wall. where the raven goes',
     state: 'soon',
-    slug: 'hollow-wood',
   },
   {
     name: 'THE LOW QUARTER',
     note: 'the houses under the keep. emptied, not ruined',
     state: 'soon',
-    slug: 'low-quarter',
   },
   {
     name: 'THE CHAPEL OF ASH',
     note: 'burned. the wall of names is still standing',
     state: 'soon',
-    slug: 'chapel-of-ash',
   },
   {
     name: 'THE WATCHTOWER',
     note: 'on the ridge. it watched the wrong direction',
     state: 'soon',
-    slug: 'watchtower',
   },
   {
     name: 'THE OSSUARY',
     note: 'under the chapel. tidy, which is the worst of it',
     state: 'soon',
-    slug: 'ossuary',
   },
   { name: '???', note: 'i do not remember', state: 'lost' },
 ];

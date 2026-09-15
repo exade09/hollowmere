@@ -3,7 +3,5 @@
 // in HOLD. A place with no entry here simply has no picture yet.
 
 export const HOLD_STILLS: Record<string, string> = {
-  'chapel-of-ash': '/holds/chapel-of-ash.jpg',
-  'great-hall': '/holds/great-hall.jpg',
-  'hollow-wood': '/holds/hollow-wood.jpg',
+
 };
