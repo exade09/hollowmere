@@ -515,6 +515,200 @@ a:hover { border-bottom-color: var(--spectre); }
 .btn.warm:hover { background: #442f20; }
 .btn:disabled { opacity: .42; cursor: not-allowed; }
 
+/* --------------------------------------------------------- how to play */
+.howto {
+  display: grid;
+  gap: 0;
+}
+
+.panel-body .howto-intro {
+  margin: 0 0 18px;
+  max-width: 52ch;
+}
+
+.howto-chapter {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(18px, 4vw, 28px);
+  clip-path: var(--cut-lg);
+  background:
+    linear-gradient(145deg, rgba(79, 214, 196, .075), transparent 34%),
+    linear-gradient(180deg, #1b1825, #121019);
+  box-shadow: var(--bevel);
+}
+
+.howto-chapter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(125deg, rgba(232, 227, 214, .07), transparent 26% 76%, rgba(79, 214, 196, .055));
+}
+
+.howto-chapter-head {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 46px 74px 1fr;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.howto-number {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  clip-path: var(--cut-sm);
+  background: #193230;
+  color: var(--spectre);
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: .08em;
+  box-shadow: var(--bevel);
+}
+
+.howto-number.warm {
+  color: var(--ember);
+  background: #33251b;
+}
+
+.howto-figure,
+.howto-object {
+  display: block;
+  width: 74px;
+  height: 74px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .5));
+}
+
+.howto-figure { object-position: 50% 18%; }
+
+.howto-chapter-head .label-sm {
+  display: block;
+  margin: 0 0 3px;
+  padding: 0;
+}
+
+.howto-chapter-head h3 {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(23px, 4vw, 30px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: .02em;
+}
+
+.panel-body .howto-chapter-head p {
+  margin-top: 7px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.howto-steps {
+  position: relative;
+  z-index: 1;
+  margin: 17px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.howto-steps li {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.howto-steps li:last-child { border-bottom: 0; }
+
+.howto-steps li > span {
+  padding-top: 3px;
+  color: var(--spectre);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+}
+
+.howto-steps.warm li > span { color: var(--ember); }
+
+.howto-steps b {
+  display: block;
+  color: var(--bone);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.panel-body .howto-steps p {
+  margin-top: 3px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.howto-warning {
+  position: relative;
+  z-index: 1;
+  margin-top: 12px;
+  padding: 11px 13px;
+  clip-path: var(--cut-sm);
+  background: rgba(79, 214, 196, .07);
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+  letter-spacing: .035em;
+}
+
+.howto-action {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+}
+
+.howto-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 9.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+
+.howto-divider::before,
+.howto-divider::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, var(--line), transparent);
+}
+
+.howto-nav {
+  color: var(--spectre);
+  box-shadow: inset 0 0 0 1px rgba(79, 214, 196, .18), var(--bevel);
+}
+
+@media (max-width: 560px) {
+  .howto-chapter-head {
+    grid-template-columns: 40px 58px 1fr;
+    gap: 10px;
+  }
+  .howto-figure,
+  .howto-object {
+    width: 58px;
+    height: 58px;
+  }
+  .howto-number { font-size: 10px; }
+  .howto-chapter { padding: 16px; }
+  .howto-chapter-head h3 { font-size: 22px; }
+}
+
 /* contract address */
 .ca {
   display: flex;

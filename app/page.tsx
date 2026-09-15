@@ -71,6 +71,7 @@ export default function Home() {
           onSigil={() => setPanel('sigil')}
           onSpeak={() => setPanel('wick')}
           onLedger={() => setPanel('ledger')}
+          onHowTo={() => setPanel('howto')}
           onGames={() => setPanel('games')}
           refresh={refresh}
         />

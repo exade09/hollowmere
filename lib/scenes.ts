@@ -19,7 +19,9 @@ export type PanelId =
    * look at the places rather than to play something, so they have a room and
    * a button in the bar of their own.
    */
-  | 'games';
+  | 'games'
+  /** First-visit guide, opened from the permanent bar */
+  | 'howto';
 
 export type SceneId = 'sanctum' | 'undercroft';
 

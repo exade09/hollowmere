@@ -14,6 +14,7 @@ type Props = {
   onSigil: () => void;
   onSpeak: () => void;
   onLedger: () => void;
+  onHowTo: () => void;
   onGames: () => void;
   refresh: () => void;
 };
@@ -36,6 +37,7 @@ export default function Chrome({
   onSigil,
   onSpeak,
   onLedger,
+  onHowTo,
   onGames,
   refresh,
 }: Props) {
@@ -81,6 +83,9 @@ export default function Chrome({
       <button className="chrome-btn" onClick={onMap}>the hold</button>
       <button className="chrome-btn" onClick={onLedger} title="read a wallet">
         what you hold
+      </button>
+      <button className={'chrome-btn howto-nav'} onClick={onHowTo} title={'how to use the hold'}>
+        how to play
       </button>
       <button className="chrome-btn" onClick={onGames} title="three small games">
         minigames

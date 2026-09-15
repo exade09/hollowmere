@@ -937,6 +937,92 @@ function Ledger() {
   );
 }
 
+/* --------------------------------------------------------- first-visit guide */
+function HowTo({ onPanel }: { onPanel: (id: PanelId) => void }) {
+  return (
+    <div className={'howto'}>
+      <p className={'lead howto-intro'}>
+        the room does not explain itself unless you ask. this page is the exception
+      </p>
+
+      <section className={'howto-chapter'}>
+        <header className={'howto-chapter-head'}>
+          <span className={'howto-number'}>01</span>
+          <img src={'/ui/wick.png'} alt={''} aria-hidden className={'howto-figure'} />
+          <div>
+            <span className={'label-sm'}>first</span>
+            <h3>speak to the keeper</h3>
+            <p>WICK reads what is already on the chain and answers in the room</p>
+          </div>
+        </header>
+
+        <ol className={'howto-steps'}>
+          <li>
+            <span>01</span>
+            <div><b>open talk to the agent</b><p>write a question, or begin with an address</p></div>
+          </li>
+          <li>
+            <span>02</span>
+            <div><b>paste a token contract</b><p>he reads holders, large exits, market attention and the current outlook</p></div>
+          </li>
+          <li>
+            <span>03</span>
+            <div><b>name a wallet when it is a wallet</b><p>say wallet, portfolio or holdings, or use what you hold in the bar</p></div>
+          </li>
+          <li>
+            <span>04</span>
+            <div><b>keep asking</b><p>ask what changed, who moved and which figures deserve watching</p></div>
+          </li>
+        </ol>
+
+        <div className={'howto-warning'}>
+          an address is enough. never place a seed phrase or private key in the fire
+        </div>
+        <button className={'btn primary howto-action'} onClick={() => onPanel('wick')}>
+          speak to wick
+        </button>
+      </section>
+
+      <div className={'howto-divider'}><span>then</span></div>
+
+      <section className={'howto-chapter'}>
+        <header className={'howto-chapter-head'}>
+          <span className={'howto-number warm'}>02</span>
+          <img src={'/ui/icons/altar.png'} alt={''} aria-hidden className={'howto-object'} />
+          <div>
+            <span className={'label-sm'}>after</span>
+            <h3>walk through the hold</h3>
+            <p>the castle is the interface. objects open rooms, records and games</p>
+          </div>
+        </header>
+
+        <ol className={'howto-steps warm'}>
+          <li>
+            <span>01</span>
+            <div><b>touch what answers</b><p>hover over objects in the room, then click the ones that wake</p></div>
+          </li>
+          <li>
+            <span>02</span>
+            <div><b>move between rooms</b><p>use the door, the stairs or the hold map to explore what is open</p></div>
+          </li>
+          <li>
+            <span>03</span>
+            <div><b>choose a pastime</b><p>keep the fire, rebuild the daily slab or remember the paired marks</p></div>
+          </li>
+          <li>
+            <span>04</span>
+            <div><b>come back another night</b><p>nights, discoveries and scores remain in this browser</p></div>
+          </li>
+        </ol>
+
+        <button className={'btn warm howto-action'} onClick={() => onPanel('games')}>
+          open the minigames
+        </button>
+      </section>
+    </div>
+  );
+}
+
 /* --------------------------------------------------------------- the host */
 const META: Record<PanelId, { kicker: string; title: string; icon?: string }> = {
   sigil: { kicker: 'the sigil', title: 'MARK OF THE HOLLOW', icon: 'sigil' },
@@ -952,6 +1038,7 @@ const META: Record<PanelId, { kicker: string; title: string; icon?: string }> = 
   wick: { kicker: 'the keeper', title: 'SPEAK TO WICK', icon: undefined },
   ledger: { kicker: 'the ledger', title: 'WHAT YOU HOLD', icon: undefined },
   games: { kicker: 'the pastimes', title: 'MINIGAMES', icon: 'altar' },
+  howto: { kicker: 'the first page', title: 'HOW TO PLAY', icon: 'books' },
 };
 
 export default function PanelHost({
@@ -979,6 +1066,7 @@ export default function PanelHost({
       {id === 'wick' && <Speak />}
       {id === 'ledger' && <Ledger />}
       {id === 'games' && <Games save={save} refresh={refresh} />}
+      {id === 'howto' && <HowTo onPanel={onPanel} />}
     </Panel>
   );
 }
