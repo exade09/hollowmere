@@ -58,12 +58,12 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const flag = (process.env.SITE_COMING_SOON || 'true').trim().toLowerCase();
-  const comingSoon = !['false', '0', 'off', 'no'].includes(flag);
+  const flag = (process.env.SITE_PUBLIC || 'false').trim().toLowerCase();
+  const sitePublic = ['true', '1', 'on', 'yes'].includes(flag);
 
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
-      <body>{comingSoon ? <ComingSoon /> : children}</body>
+      <body>{sitePublic ? children : <ComingSoon />}</body>
     </html>
   );
 }
