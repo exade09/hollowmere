@@ -58,8 +58,8 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const flag = (process.env.SITE_PUBLIC || 'false').trim().toLowerCase();
-  const sitePublic = ['true', '1', 'on', 'yes'].includes(flag);
+  const flag = (process.env.SITE_PUBLIC || 'true').trim().toLowerCase();
+  const sitePublic = !['false', '0', 'off', 'no'].includes(flag);
 
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
